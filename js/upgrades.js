@@ -1,10 +1,11 @@
 /**
  * KNIGHTMARE: DUNGEONEER'S FLIGHT
  * Roguelite ("Gongueslike") Meta-Progression & Sanctuary Manager
+ * Fully dependency-injectable, defensive tier boundaries, and relic modifier calculations.
  */
 
 import { CONFIG } from './config.js';
-import { storage } from './storage.js';
+import { storage as defaultStorage } from './storage.js';
 import { audio } from './audio.js';
 
 export const IN_RUN_RELICS = {
@@ -35,46 +36,45 @@ export const IN_RUN_RELICS = {
 };
 
 export class UpgradeManager {
-  constructor() {
+  constructor(storageManager = defaultStorage) {
+    this.storage = storageManager;
     this.activeRunRelics = new Set();
   }
 
   // --- STAT CALCULATIONS FROM PERMANENT SANCTUARY UPGRADES ---
 
   getMaxLifeForce() {
-    const tier = storage.getUpgradeTier('HORNS_OF_RESILIENCE');
+    const tier = this.storage.getUpgradeTier('HORNS_OF_RESILIENCE');
     const bonus = tier * CONFIG.UPGRADES.HORNS_OF_RESILIENCE.perTierValue;
     return Math.round(CONFIG.BASE_MAX_LIFE_FORCE * (1 + bonus));
   }
 
   getGravityMultiplier() {
-    const tier = storage.getUpgradeTier('PLUME_OF_LEVITATION');
+    const tier = this.storage.getUpgradeTier('PLUME_OF_LEVITATION');
     const reduction = tier * CONFIG.UPGRADES.PLUME_OF_LEVITATION.perTierValue;
     return Math.max(0.55, 1 - reduction);
   }
 
   getGapBonus() {
-    const tier = storage.getUpgradeTier('DUNSHELM_MASONRY');
+    const tier = this.storage.getUpgradeTier('DUNSHELM_MASONRY');
     return tier * CONFIG.UPGRADES.DUNSHELM_MASONRY.perTierValue;
   }
 
   getGoldMultiplier() {
-    const tier = storage.getUpgradeTier('ALCHEMISTS_SATCHEL');
+    const tier = this.storage.getUpgradeTier('ALCHEMISTS_SATCHEL');
     return 1 + (tier * CONFIG.UPGRADES.ALCHEMISTS_SATCHEL.perTierValue);
   }
 
   getStartingShields() {
-    const tier = storage.getUpgradeTier('ARMOR_OF_JUSTICE');
-    return tier; // 0, 1, 2, or 3 shields
+    return this.storage.getUpgradeTier('ARMOR_OF_JUSTICE');
   }
 
   hasSecondWind() {
-    const tier = storage.getUpgradeTier('SECOND_WIND');
-    return tier > 0;
+    return this.storage.getUpgradeTier('SECOND_WIND') > 0;
   }
 
   getSpellCooldownMultiplier() {
-    const tier = storage.getUpgradeTier('SPELL_AFFINITY');
+    const tier = this.storage.getUpgradeTier('SPELL_AFFINITY');
     let mod = 1 - (tier * CONFIG.UPGRADES.SPELL_AFFINITY.perTierValue);
     if (this.activeRunRelics.has('CHRONO_HOURGLASS')) {
       mod *= 0.65;
@@ -83,12 +83,12 @@ export class UpgradeManager {
   }
 
   getSpellDurationMultiplier() {
-    const tier = storage.getUpgradeTier('SPELL_AFFINITY');
+    const tier = this.storage.getUpgradeTier('SPELL_AFFINITY');
     return 1 + (tier * 0.15);
   }
 
   getFoodNutritionMultiplier() {
-    const tier = storage.getUpgradeTier('SCAVENGERS_LORE');
+    const tier = this.storage.getUpgradeTier('SCAVENGERS_LORE');
     return 1 + (tier * CONFIG.UPGRADES.SCAVENGERS_LORE.perTierValue);
   }
 
@@ -105,7 +105,7 @@ export class UpgradeManager {
   getUpgradeInfo(id) {
     const def = CONFIG.UPGRADES[id];
     if (!def) return null;
-    const currentTier = storage.getUpgradeTier(id);
+    const currentTier = this.storage.getUpgradeTier(id);
     const isMax = currentTier >= def.maxTier;
     const nextCost = isMax ? null : def.costs[currentTier];
 
@@ -120,18 +120,18 @@ export class UpgradeManager {
   canAfford(id) {
     const info = this.getUpgradeInfo(id);
     if (!info || info.isMax) return false;
-    return storage.get('gold') >= info.nextCost;
+    return this.storage.get('gold') >= info.nextCost;
   }
 
   purchase(id) {
     const info = this.getUpgradeInfo(id);
     if (!info || info.isMax) return { success: false, reason: 'Already at maximum tier' };
 
-    if (storage.spendGold(info.nextCost)) {
+    if (this.storage.spendGold(info.nextCost)) {
       const newTier = info.currentTier + 1;
-      storage.setUpgradeTier(id, newTier);
+      this.storage.setUpgradeTier(id, newTier);
       audio.playRuby();
-      return { success: true, newTier, remainingGold: storage.get('gold') };
+      return { success: true, newTier, remainingGold: this.storage.get('gold') };
     }
 
     return { success: false, reason: 'Insufficient Dunshelm Gold' };

@@ -24,15 +24,18 @@ export class GameRenderer {
   }
 
   resize() {
-    // Maintain aspect ratio or high-DPI crispness if needed
-    const rect = this.canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (!this.canvas || !this.ctx) return;
+    const dpr = Math.min(typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1, 2);
     
-    // We keep fixed logical coordinate space 960x640 for physics simplicity
-    this.canvas.width = CONFIG.CANVAS_WIDTH * dpr;
-    this.canvas.height = CONFIG.CANVAS_HEIGHT * dpr;
-    this.ctx.resetTransform();
-    this.ctx.scale(dpr, dpr);
+    // Fixed logical coordinate space 960x640 for deterministic physics & rendering
+    this.canvas.width = Math.round(CONFIG.CANVAS_WIDTH * dpr);
+    this.canvas.height = Math.round(CONFIG.CANVAS_HEIGHT * dpr);
+    if (typeof this.ctx.setTransform === 'function') {
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    } else if (typeof this.ctx.resetTransform === 'function') {
+      this.ctx.resetTransform();
+      this.ctx.scale(dpr, dpr);
+    }
     this.width = CONFIG.CANVAS_WIDTH;
     this.height = CONFIG.CANVAS_HEIGHT;
   }

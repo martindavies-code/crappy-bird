@@ -1,6 +1,7 @@
 /**
  * KNIGHTMARE: DUNGEONEER'S FLIGHT
  * Life Force Clock Controller & Iconic Knightmare Degrading Face Renderer
+ * Military-grade defensive state, zero-NaN guarantees, and responsive Canvas 2D face rendering.
  */
 
 import { CONFIG } from './config.js';
@@ -17,7 +18,7 @@ export const LIFE_STAGE = {
 export class LifeForceClock {
   constructor(canvasElement) {
     this.canvas = canvasElement;
-    this.ctx = canvasElement ? canvasElement.getContext('2d') : null;
+    this.ctx = canvasElement && typeof canvasElement.getContext === 'function' ? canvasElement.getContext('2d') : null;
     
     this.current = 100;
     this.max = 100;
@@ -30,8 +31,9 @@ export class LifeForceClock {
   }
 
   reset(maxLifeForce = 100) {
-    this.max = maxLifeForce;
-    this.current = maxLifeForce;
+    const validMax = (Number.isFinite(maxLifeForce) && maxLifeForce > 0) ? maxLifeForce : 100;
+    this.max = validMax;
+    this.current = validMax;
     this.stage = LIFE_STAGE.GREEN;
     this.lastStage = LIFE_STAGE.GREEN;
     this.isFlashing = false;
@@ -40,8 +42,10 @@ export class LifeForceClock {
   }
 
   update(dt) {
+    const validDt = (Number.isFinite(dt) && dt > 0) ? dt : 0;
+    
     // Tick down life force
-    this.current = Math.max(0, this.current - this.decayRate * dt);
+    this.current = Math.max(0, this.current - this.decayRate * validDt);
     const pct = this.getPercentage();
 
     // Check stages
@@ -62,9 +66,9 @@ export class LifeForceClock {
     }
 
     // Pulse phase for animations
-    this.pulsePhase += dt * 4;
+    this.pulsePhase += validDt * 4;
     if (this.flashTimer > 0) {
-      this.flashTimer -= dt;
+      this.flashTimer -= validDt;
       this.isFlashing = Math.sin(this.flashTimer * 20) > 0;
     } else {
       this.isFlashing = false;
@@ -76,9 +80,11 @@ export class LifeForceClock {
   handleStageTransition(newStage, oldStage) {
     const dispatch = (stage, message) => {
       if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
-        window.dispatchEvent(new CustomEvent('lifeforce-stage', {
-          detail: { stage, message }
-        }));
+        try {
+          window.dispatchEvent(new CustomEvent('lifeforce-stage', {
+            detail: { stage, message }
+          }));
+        } catch (e) {}
       }
     };
 
@@ -95,10 +101,12 @@ export class LifeForceClock {
     } else if (newStage === LIFE_STAGE.SKULL) {
       audio.stopRedHeartbeat();
       audio.playDeathGong();
+      dispatch('SKULL', 'Life Force Depleted: The Skull of Doom claims another soul.');
     }
   }
 
   feed(amount) {
+    if (!Number.isFinite(amount) || amount <= 0) return 0;
     const prev = this.current;
     this.current = Math.min(this.max, this.current + amount);
     this.flashTimer = 0.4;
@@ -106,12 +114,14 @@ export class LifeForceClock {
   }
 
   damage(amount) {
+    if (!Number.isFinite(amount) || amount <= 0) return;
     this.current = Math.max(0, this.current - amount);
     this.flashTimer = 0.5;
   }
 
   getPercentage() {
-    return Math.round((this.current / this.max) * 100);
+    if (!this.max || this.max <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((this.current / this.max) * 100)));
   }
 
   isDead() {
@@ -128,6 +138,19 @@ export class LifeForceClock {
     }
   }
 
+  safeDrawEllipse(ctx, cx, cy, rx, ry, rotation = 0) {
+    if (typeof ctx.ellipse === 'function') {
+      ctx.ellipse(cx, cy, rx, ry, rotation, 0, Math.PI * 2);
+    } else {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rotation);
+      ctx.scale(rx, ry);
+      ctx.arc(0, 0, 1, 0, Math.PI * 2);
+      ctx.restore();
+    }
+  }
+
   /**
    * Render the iconic Knightmare peeling face on the clock canvas
    */
@@ -136,6 +159,8 @@ export class LifeForceClock {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
+    if (w <= 0 || h <= 0) return;
+
     const cx = w / 2;
     const cy = h / 2 + 4;
     const pct = this.getPercentage();
@@ -222,8 +247,8 @@ export class LifeForceClock {
       // Hollow Eye Sockets
       ctx.fillStyle = '#020617';
       ctx.beginPath();
-      ctx.ellipse(cx - 6, cy - 4, 4.5, 6, 0.1, 0, Math.PI * 2);
-      ctx.ellipse(cx + 6, cy - 4, 4.5, 6, -0.1, 0, Math.PI * 2);
+      this.safeDrawEllipse(ctx, cx - 6, cy - 4, 4.5, 6, 0.1);
+      this.safeDrawEllipse(ctx, cx + 6, cy - 4, 4.5, 6, -0.1);
       ctx.fill();
 
       // Nose Cavity
@@ -315,7 +340,6 @@ export class LifeForceClock {
 
     } else {
       // --- GREEN VISOR (Pristine Knightly Armored Face) ---
-      // Full polished steel helmet dome
       const steelGrad = ctx.createLinearGradient(cx - 20, cy - 20, cx + 20, cy + 20);
       steelGrad.addColorStop(0, '#f8fafc');
       steelGrad.addColorStop(0.3, '#cbd5e1');
@@ -354,7 +378,7 @@ export class LifeForceClock {
       // Crest plume on top of helmet
       ctx.fillStyle = '#10b981';
       ctx.beginPath();
-      ctx.ellipse(cx, cy - 23, 5, 9, 0, 0, Math.PI * 2);
+      this.safeDrawEllipse(ctx, cx, cy - 23, 5, 9, 0);
       ctx.fill();
       ctx.strokeStyle = '#047857';
       ctx.lineWidth = 1;

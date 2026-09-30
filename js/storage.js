@@ -53,37 +53,83 @@ const DEFAULT_STATE = {
   }
 };
 
+function getSafeLocalStorage() {
+  try {
+    if (typeof window !== 'undefined' && 'localStorage' in window && window.localStorage !== null) {
+      const testKey = '__knightmare_storage_test__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      return window.localStorage;
+    }
+  } catch (e) {
+    // Access denied or quota exceeded (e.g. Safari private browsing or iframe)
+    return null;
+  }
+  return null;
+}
+
 export class StorageManager {
   constructor() {
+    this.storage = getSafeLocalStorage();
+    this.memoryFallback = null;
     this.data = this.load();
   }
 
   load() {
     try {
-      if (typeof localStorage === 'undefined') return structuredClone(DEFAULT_STATE);
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return structuredClone(DEFAULT_STATE);
-      
-      const parsed = JSON.parse(raw);
-      // Merge with default in case new fields were added
-      return {
-        ...DEFAULT_STATE,
-        ...parsed,
-        upgrades: { ...DEFAULT_STATE.upgrades, ...(parsed.upgrades || {}) },
-        settings: { ...DEFAULT_STATE.settings, ...(parsed.settings || {}) }
-      };
+      if (this.storage) {
+        const raw = this.storage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return this.sanitizeState(parsed);
+        }
+      }
     } catch (err) {
       console.warn('Failed to load save from localStorage; using defaults.', err);
+    }
+    return structuredClone(DEFAULT_STATE);
+  }
+
+  sanitizeState(parsed) {
+    if (typeof parsed !== 'object' || parsed === null) {
       return structuredClone(DEFAULT_STATE);
     }
+
+    const cleanNumber = (val, fallback = 0) => {
+      return (typeof val === 'number' && Number.isFinite(val) && val >= 0) ? Math.round(val) : fallback;
+    };
+
+    const cleanUpgrades = {};
+    for (const k in DEFAULT_STATE.upgrades) {
+      cleanUpgrades[k] = cleanNumber(parsed.upgrades?.[k], 0);
+    }
+
+    return {
+      ...DEFAULT_STATE,
+      ...parsed,
+      gold: cleanNumber(parsed.gold, 0),
+      rubies: cleanNumber(parsed.rubies, 0),
+      highScore: cleanNumber(parsed.highScore, 0),
+      runsAttempted: cleanNumber(parsed.runsAttempted, 0),
+      totalPaces: cleanNumber(parsed.totalPaces, 0),
+      totalFoodEaten: cleanNumber(parsed.totalFoodEaten, 0),
+      totalSpellsCast: cleanNumber(parsed.totalSpellsCast, 0),
+      totalObstaclesCleared: cleanNumber(parsed.totalObstaclesCleared, 0),
+      upgrades: cleanUpgrades,
+      settings: { ...DEFAULT_STATE.settings, ...(parsed.settings || {}) }
+    };
   }
 
   save() {
     try {
-      if (typeof localStorage === 'undefined') return;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      if (this.storage) {
+        this.storage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      } else {
+        this.memoryFallback = JSON.stringify(this.data);
+      }
     } catch (err) {
-      console.error('Failed to save to localStorage:', err);
+      console.warn('Failed to write to localStorage (quota or privacy); using in-memory store.', err);
+      this.memoryFallback = JSON.stringify(this.data);
     }
   }
 
@@ -110,19 +156,23 @@ export class StorageManager {
   }
 
   setUpgradeTier(id, tier) {
-    this.data.upgrades[id] = tier;
+    const cleanTier = (typeof tier === 'number' && Number.isFinite(tier) && tier >= 0) ? Math.round(tier) : 0;
+    this.data.upgrades[id] = cleanTier;
     this.save();
   }
 
   addGold(amount) {
+    if (!Number.isFinite(amount) || amount <= 0) return this.data.gold;
     this.data.gold = Math.max(0, (this.data.gold || 0) + Math.round(amount));
     this.save();
     return this.data.gold;
   }
 
   spendGold(amount) {
-    if (this.data.gold >= amount) {
-      this.data.gold -= amount;
+    if (!Number.isFinite(amount) || amount <= 0) return false;
+    const rounded = Math.round(amount);
+    if (this.data.gold >= rounded) {
+      this.data.gold -= rounded;
       this.save();
       return true;
     }
@@ -130,8 +180,8 @@ export class StorageManager {
   }
 
   updateHighScore(score) {
-    if (score > this.data.highScore) {
-      this.data.highScore = score;
+    if (Number.isFinite(score) && score > this.data.highScore) {
+      this.data.highScore = Math.round(score);
       this.save();
       return true;
     }
@@ -139,8 +189,8 @@ export class StorageManager {
   }
 
   incrementStat(key, amount = 1) {
-    if (typeof this.data[key] === 'number') {
-      this.data[key] += amount;
+    if (typeof this.data[key] === 'number' && Number.isFinite(amount)) {
+      this.data[key] += Math.round(amount);
       this.save();
     }
   }
@@ -151,18 +201,13 @@ export class StorageManager {
 
   importDataJson(jsonStr) {
     try {
+      if (typeof jsonStr !== 'string' || !jsonStr.trim()) return false;
       const parsed = JSON.parse(jsonStr);
-      if (typeof parsed !== 'object' || parsed === null) throw new Error('Invalid JSON format');
-      this.data = {
-        ...DEFAULT_STATE,
-        ...parsed,
-        upgrades: { ...DEFAULT_STATE.upgrades, ...(parsed.upgrades || {}) },
-        settings: { ...DEFAULT_STATE.settings, ...(parsed.settings || {}) }
-      };
+      if (typeof parsed !== 'object' || parsed === null) return false;
+      this.data = this.sanitizeState(parsed);
       this.save();
       return true;
     } catch (err) {
-      console.error('Import failed:', err);
       return false;
     }
   }
@@ -174,3 +219,4 @@ export class StorageManager {
 }
 
 export const storage = new StorageManager();
+

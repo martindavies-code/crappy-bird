@@ -1,6 +1,8 @@
 /**
  * KNIGHTMARE: DUNGEONEER'S FLIGHT
  * Master Game Controller & Loop
+ * Military-grade state machine, zero-concurrency animation loop,
+ * tab visibility auto-pause, accessible live audio/captions, and roguelite progression.
  */
 
 import { CONFIG } from './config.js';
@@ -28,7 +30,7 @@ export class GameEngine {
     
     this.state = GAME_STATE.TITLE;
     this.lastTime = 0;
-    this.accumulator = 0;
+    this.animFrameId = null;
     
     // In-Run Dynamic State
     this.dungeoneer = new Dungeoneer();
@@ -44,7 +46,6 @@ export class GameEngine {
     
     this.obstacleSpawnTimer = 0;
     this.treguardBannerTimer = 0;
-    this.timeScale = 1.0;           // Modified by Eyeshield spell or assist mode
     this.attractTime = 0;
     
     this.initDOMReferences();
@@ -59,6 +60,11 @@ export class GameEngine {
   }
 
   startAttractMode() {
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+
     const loop = () => {
       if (this.state !== GAME_STATE.TITLE) return;
       const dt = 0.016;
@@ -90,9 +96,10 @@ export class GameEngine {
         currentChamber: this.getCurrentChamber()
       });
 
-      requestAnimationFrame(loop);
+      this.animFrameId = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
+
+    this.animFrameId = requestAnimationFrame(loop);
   }
 
   initDOMReferences() {
@@ -101,6 +108,7 @@ export class GameEngine {
     this.elBest = document.getElementById('hud-best-paces');
     this.elGold = document.getElementById('hud-gold');
     this.elShields = document.getElementById('hud-shields');
+    this.elShieldsContainer = document.getElementById('hud-shields-container');
     this.elChamberName = document.getElementById('hud-chamber-name');
     this.elTreguardBanner = document.getElementById('treguard-banner-text');
     this.elLifePct = document.getElementById('lifeforce-percentage');
@@ -118,6 +126,23 @@ export class GameEngine {
   initEventListeners() {
     // Window Resize
     window.addEventListener('resize', () => this.renderer.resize());
+
+    // Window Blur & Tab Visibility Change (Defensive Auto-Pause)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.state === GAME_STATE.PLAYING) {
+        this.togglePause();
+      }
+      if (document.hidden) {
+        this.dungeoneer.isHoldingRise = false;
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      if (this.state === GAME_STATE.PLAYING) {
+        this.togglePause();
+      }
+      this.dungeoneer.isHoldingRise = false;
+    });
 
     // Keyboard Inputs
     window.addEventListener('keydown', (e) => this.handleKeyDown(e));
@@ -146,8 +171,7 @@ export class GameEngine {
       }
     });
 
-    // Custom Key Capture listener if binding keys
-    this.isRebindingKey = null;
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
     // Connect UI Action Buttons - Header and Overlays
     const startRunFn = (e) => {
@@ -328,16 +352,10 @@ export class GameEngine {
   }
 
   handleKeyDown(e) {
-    if (this.isRebindingKey) {
-      e.preventDefault();
-      this.finishRebinding(e.code);
-      return;
-    }
-
     const customKeys = storage.getSetting('customKeys') || CONFIG.DEFAULT_CONTROLS;
-    const isFlapKey = CONFIG.DEFAULT_CONTROLS.flap.includes(e.code) || e.code === customKeys.flap;
-    const isSpellKey = CONFIG.DEFAULT_CONTROLS.spell.includes(e.code) || e.code === customKeys.spell;
-    const isPauseKey = CONFIG.DEFAULT_CONTROLS.pause.includes(e.code) || e.code === customKeys.pause;
+    const isFlapKey = (Array.isArray(CONFIG.DEFAULT_CONTROLS.flap) && CONFIG.DEFAULT_CONTROLS.flap.includes(e.code)) || e.code === customKeys.flap;
+    const isSpellKey = (Array.isArray(CONFIG.DEFAULT_CONTROLS.spell) && CONFIG.DEFAULT_CONTROLS.spell.includes(e.code)) || e.code === customKeys.spell;
+    const isPauseKey = (Array.isArray(CONFIG.DEFAULT_CONTROLS.pause) && CONFIG.DEFAULT_CONTROLS.pause.includes(e.code)) || e.code === customKeys.pause;
 
     if (this.state === GAME_STATE.TITLE) {
       if (isFlapKey || e.code === 'Enter' || e.code === 'Space') {
@@ -376,7 +394,7 @@ export class GameEngine {
 
   handleKeyUp(e) {
     const customKeys = storage.getSetting('customKeys') || CONFIG.DEFAULT_CONTROLS;
-    const isFlapKey = CONFIG.DEFAULT_CONTROLS.flap.includes(e.code) || e.code === customKeys.flap;
+    const isFlapKey = (Array.isArray(CONFIG.DEFAULT_CONTROLS.flap) && CONFIG.DEFAULT_CONTROLS.flap.includes(e.code)) || e.code === customKeys.flap;
     if (isFlapKey && storage.getSetting('holdToRise')) {
       this.dungeoneer.isHoldingRise = false;
     }
@@ -388,7 +406,6 @@ export class GameEngine {
   }
 
   playerCastSpell() {
-    // Cast DISMISS by default, or cycle active spells
     const chosenSpell = 'DISMISS';
     if (this.dungeoneer.castSpell(chosenSpell)) {
       this.spellsCastRun++;
@@ -405,12 +422,20 @@ export class GameEngine {
 
       this.setTreguardBanner('Spell cast: D-I-S-M-I-S-S! Obstacle shattered!');
       a11y.announceAssertive('Spell invoked: DISMISS! Obstacle pulverized!');
+    } else {
+      // Cooldown feedback
+      audio.playSpellCooldownFizzle();
+      const cd = Math.ceil(this.dungeoneer.spellCooldowns.DISMISS || 0);
+      this.elSpellSlot?.classList.add('pulse-fizzle');
+      setTimeout(() => this.elSpellSlot?.classList.remove('pulse-fizzle'), 350);
+      a11y.announcePolite(`DISMISS spell recharging: ${cd}s remaining.`);
     }
   }
 
   togglePause() {
     if (this.state === GAME_STATE.PLAYING) {
       this.state = GAME_STATE.PAUSED;
+      this.dungeoneer.isHoldingRise = false;
       audio.stopBgm();
       this.setTreguardBanner('Journey paused. Rest awhile, Stranger.');
       a11y.announcePolite('Game paused.');
@@ -422,12 +447,20 @@ export class GameEngine {
       a11y.announcePolite('Game resumed.');
       document.getElementById('pause-overlay')?.classList.add('hidden');
       this.lastTime = performance.now();
+      if (!this.animFrameId) {
+        this.animFrameId = requestAnimationFrame((t) => this.gameLoop(t));
+      }
     }
   }
 
   // --- RUN LIFECYCLE ---
 
   startNewRun() {
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+
     audio.init();
     audio.playTreguardFanfare();
     audio.startBgm();
@@ -466,11 +499,17 @@ export class GameEngine {
     a11y.announcePolite(`New run begun in ${this.getCurrentChamber().name}. Flap with Space or tap to ascend.`);
 
     this.lastTime = performance.now();
-    requestAnimationFrame((t) => this.gameLoop(t));
+    this.animFrameId = requestAnimationFrame((t) => this.gameLoop(t));
   }
 
   gameOver(reason = 'LIFE_FORCE_EXPIRED') {
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+
     this.state = GAME_STATE.GAMEOVER;
+    this.dungeoneer.isHoldingRise = false;
     audio.stopBgm();
     audio.stopRedHeartbeat();
     audio.playDeathGong();
@@ -482,22 +521,27 @@ export class GameEngine {
     storage.incrementStat('totalFoodEaten', this.foodEatenRun);
 
     // Populate Game Over Dialog
-    document.getElementById('postrun-paces').textContent = `${this.distance} paces`;
-    document.getElementById('postrun-best').textContent = `${storage.get('highScore')} paces`;
-    document.getElementById('postrun-gold').textContent = `${this.goldCollectedRun} gold`;
-    document.getElementById('postrun-food').textContent = `${this.foodEatenRun} rations`;
-    document.getElementById('postrun-spells').textContent = `${this.spellsCastRun} spells`;
-    document.getElementById('postrun-total-gold').textContent = `${storage.get('gold')} gold`;
+    const pacesEl = document.getElementById('postrun-paces');
+    if (pacesEl) pacesEl.textContent = `${this.distance} paces`;
+    const bestEl = document.getElementById('postrun-best');
+    if (bestEl) bestEl.textContent = `${storage.get('highScore')} paces`;
+    const goldEl = document.getElementById('postrun-gold');
+    if (goldEl) goldEl.textContent = `${this.goldCollectedRun} gold`;
+    const foodEl = document.getElementById('postrun-food');
+    if (foodEl) foodEl.textContent = `${this.foodEatenRun} rations`;
+    const spellsEl = document.getElementById('postrun-spells');
+    if (spellsEl) spellsEl.textContent = `${this.spellsCastRun} spells`;
+    const totalGoldEl = document.getElementById('postrun-total-gold');
+    if (totalGoldEl) totalGoldEl.textContent = `${storage.get('gold')} gold`;
 
     const titleEl = document.getElementById('gameover-title');
-    if (reason === 'COLLISION') {
-      titleEl.textContent = 'Crushed by the Dungeon!';
-    } else {
-      titleEl.textContent = 'Life Force Extinguished!';
+    if (titleEl) {
+      titleEl.textContent = reason === 'COLLISION' ? 'Crushed by the Dungeon!' : 'Life Force Extinguished!';
     }
 
     const deathQuote = CONFIG.TREGUARD_SPEECHES.DEATH[Math.floor(Math.random() * CONFIG.TREGUARD_SPEECHES.DEATH.length)];
-    document.getElementById('gameover-quote').textContent = `"${deathQuote}" — Treguard`;
+    const quoteEl = document.getElementById('gameover-quote');
+    if (quoteEl) quoteEl.textContent = `"${deathQuote}" — Treguard`;
     audio.speakTreguard(deathQuote);
 
     a11y.openModal('dialog-gameover');
@@ -506,7 +550,8 @@ export class GameEngine {
 
   openSanctuary() {
     this.renderSanctuaryUpgrades();
-    document.getElementById('sanctuary-gold-counter').textContent = `${storage.get('gold')} 🪙`;
+    const goldCounter = document.getElementById('sanctuary-gold-counter');
+    if (goldCounter) goldCounter.textContent = `${storage.get('gold')} 🪙`;
     a11y.openModal('dialog-sanctuary');
     const quote = CONFIG.TREGUARD_SPEECHES.SANCTUARY[Math.floor(Math.random() * CONFIG.TREGUARD_SPEECHES.SANCTUARY.length)];
     audio.speakTreguard(quote);
@@ -553,7 +598,8 @@ export class GameEngine {
         const id = e.target.getAttribute('data-upgrade-id');
         const res = upgrades.purchase(id);
         if (res.success) {
-          document.getElementById('sanctuary-gold-counter').textContent = `${res.remainingGold} 🪙`;
+          const goldCounter = document.getElementById('sanctuary-gold-counter');
+          if (goldCounter) goldCounter.textContent = `${res.remainingGold} 🪙`;
           this.renderSanctuaryUpgrades();
           a11y.announcePolite(`Upgraded ${CONFIG.UPGRADES[id].name} to tier ${res.newTier}. Remaining gold: ${res.remainingGold}.`);
         } else {
@@ -586,7 +632,9 @@ export class GameEngine {
 
     this.syncHUD();
 
-    requestAnimationFrame((t) => this.gameLoop(t));
+    if (this.state === GAME_STATE.PLAYING) {
+      this.animFrameId = requestAnimationFrame((t) => this.gameLoop(t));
+    }
   }
 
   update(dt) {
@@ -609,7 +657,10 @@ export class GameEngine {
         this.particles.emitSpellExplosion(this.dungeoneer.x, this.dungeoneer.y, '#ffd166');
         this.setTreguardBanner("Treguard's Second Wind invokes! Arise, Dungeoneer!");
         a11y.announceAssertive('Treguard has revived you with 50% life force!');
-      } else if (!storage.getSetting('practiceMode')) {
+      } else if (storage.getSetting('practiceMode')) {
+        this.lifeForce.feed(35);
+        this.setTreguardBanner("Practice ward sustains thy life force!");
+      } else {
         this.gameOver('LIFE_FORCE_EXPIRED');
         return;
       }
@@ -643,7 +694,6 @@ export class GameEngine {
       // Collision Check
       if (!obs.isDismissed && obs.collidesWith(this.dungeoneer)) {
         if (storage.getSetting('practiceMode')) {
-          // Invincible in practice mode
           this.renderer.triggerShake(3, 0.2);
         } else {
           // Check if Armor of Justice absorbs it
@@ -786,12 +836,12 @@ export class GameEngine {
     if (this.elChamberName) this.elChamberName.textContent = this.getCurrentChamber().name;
 
     // Shield status
-    if (this.elShields) {
+    if (this.elShields && this.elShieldsContainer) {
       if (this.dungeoneer.shields > 0) {
         this.elShields.textContent = `🛡️ × ${this.dungeoneer.shields}`;
-        this.elShields.parentElement.classList.remove('hidden');
+        this.elShieldsContainer.classList.remove('hidden');
       } else {
-        this.elShields.parentElement.classList.add('hidden');
+        this.elShieldsContainer.classList.add('hidden');
       }
     }
 

@@ -2,6 +2,7 @@
  * KNIGHTMARE: DUNGEONEER'S FLIGHT
  * Accessibility (a11y) Manager & WCAG AAA Compliance Suite
  * Screen reader live regions, closed captions HUD, motor assist, and sensory accommodations
+ * Military-grade focus trapping, dialog lifecycle protection, and XSS-free DOM rendering.
  */
 
 import { storage } from './storage.js';
@@ -19,34 +20,59 @@ export class AccessibilityManager {
 
     this.initSystemWatchers();
     this.initCaptionsListener();
+    this.initDialogFocusRestoration();
     this.applyStoredPreferences();
   }
 
   initSystemWatchers() {
-    // Watch prefers-reduced-motion
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const handleMotion = (e) => {
-      if (storage.getSetting('reducedMotion') === undefined) {
-        document.body.classList.toggle('reduced-motion', e.matches);
-      }
-    };
-    motionQuery.addEventListener('change', handleMotion);
-    handleMotion(motionQuery);
+    if (typeof window === 'undefined' || !window.matchMedia) return;
 
-    // Watch prefers-contrast
-    const contrastQuery = window.matchMedia('(prefers-contrast: more)');
-    const handleContrast = (e) => {
-      if (storage.getSetting('highContrast') === undefined) {
-        document.body.classList.toggle('high-contrast', e.matches);
+    // Watch prefers-reduced-motion
+    try {
+      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const handleMotion = (e) => {
+        if (storage.getSetting('reducedMotion') === undefined) {
+          document.body.classList.toggle('reduced-motion', e.matches);
+        }
+      };
+      if (motionQuery.addEventListener) {
+        motionQuery.addEventListener('change', handleMotion);
       }
-    };
-    contrastQuery.addEventListener('change', handleContrast);
-    handleContrast(contrastQuery);
+      handleMotion(motionQuery);
+
+      // Watch prefers-contrast
+      const contrastQuery = window.matchMedia('(prefers-contrast: more)');
+      const handleContrast = (e) => {
+        if (storage.getSetting('highContrast') === undefined) {
+          document.body.classList.toggle('high-contrast', e.matches);
+        }
+      };
+      if (contrastQuery.addEventListener) {
+        contrastQuery.addEventListener('change', handleContrast);
+      }
+      handleContrast(contrastQuery);
+    } catch (e) {
+      console.warn('Media query matchers not fully supported:', e);
+    }
   }
 
   initCaptionsListener() {
     audio.onCaption((caption) => {
       this.addCaption(caption);
+    });
+  }
+
+  initDialogFocusRestoration() {
+    if (typeof document === 'undefined') return;
+    const dialogs = document.querySelectorAll('dialog');
+    dialogs.forEach(dialog => {
+      dialog.addEventListener('close', () => {
+        if (this.previousFocusElement && typeof this.previousFocusElement.focus === 'function') {
+          try {
+            this.previousFocusElement.focus();
+          } catch (e) {}
+        }
+      });
     });
   }
 
@@ -67,18 +93,17 @@ export class AccessibilityManager {
     clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
       this.politeRegion.textContent = '';
-      // Force DOM tree mutation recognition
       requestAnimationFrame(() => {
-        this.politeRegion.textContent = msg;
+        this.politeRegion.textContent = String(msg);
       });
-    }, 150);
+    }, 120);
   }
 
   announceAssertive(msg) {
     if (!this.assertiveRegion) return;
     this.assertiveRegion.textContent = '';
     requestAnimationFrame(() => {
-      this.assertiveRegion.textContent = msg;
+      this.assertiveRegion.textContent = String(msg);
     });
   }
 
@@ -88,8 +113,8 @@ export class AccessibilityManager {
     if (!storage.getSetting('captionsEnabled')) return;
     if (!this.captionsContainer) return;
 
-    const id = 'cap-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
-    const item = { id, text, icon, priority, expiresAt: Date.now() + 3800 };
+    const id = 'cap-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
+    const item = { id, text: String(text), icon: String(icon), priority, expiresAt: Date.now() + 3800 };
     this.recentCaptions.unshift(item);
     if (this.recentCaptions.length > 3) this.recentCaptions.pop();
 
@@ -107,7 +132,19 @@ export class AccessibilityManager {
     for (const c of this.recentCaptions) {
       const li = document.createElement('li');
       li.className = `caption-item priority-${c.priority}`;
-      li.innerHTML = `<span class="caption-icon" aria-hidden="true">${c.icon}</span> <span class="caption-text">${c.text}</span>`;
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'caption-icon';
+      iconSpan.setAttribute('aria-hidden', 'true');
+      iconSpan.textContent = c.icon;
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'caption-text';
+      textSpan.textContent = c.text; // Text content prevents any HTML injection
+
+      li.appendChild(iconSpan);
+      li.appendChild(document.createTextNode(' '));
+      li.appendChild(textSpan);
       this.captionsContainer.appendChild(li);
     }
   }
@@ -116,7 +153,7 @@ export class AccessibilityManager {
 
   openModal(dialogId) {
     const dialog = document.getElementById(dialogId);
-    if (!dialog || typeof dialog.showModal !== 'function') return;
+    if (!dialog || dialog.open || typeof dialog.showModal !== 'function') return;
 
     this.previousFocusElement = document.activeElement;
     dialog.showModal();
@@ -130,11 +167,13 @@ export class AccessibilityManager {
 
   closeModal(dialogId) {
     const dialog = document.getElementById(dialogId);
-    if (!dialog || !dialog.open) return;
+    if (!dialog || !dialog.open || typeof dialog.close !== 'function') return;
 
     dialog.close();
     if (this.previousFocusElement && typeof this.previousFocusElement.focus === 'function') {
-      this.previousFocusElement.focus();
+      try {
+        this.previousFocusElement.focus();
+      } catch (e) {}
     }
   }
 

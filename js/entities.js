@@ -192,25 +192,33 @@ export class Obstacle {
   collidesWith(dungeoneer, toleranceRadius = 0) {
     if (this.isDismissed) return false;
 
-    const hitRadius = Math.max(8, dungeoneer.radius - toleranceRadius);
+    const hitRadius = Math.max(6, dungeoneer.radius - toleranceRadius);
     const px = dungeoneer.x;
     const py = dungeoneer.y;
 
     const topPipeBottom = this.gapCenterY - this.gapHeight / 2;
     const bottomPipeTop = this.gapCenterY + this.gapHeight / 2;
 
-    // Horizontal check against obstacle bounds
-    const obstacleLeft = this.x;
-    const obstacleRight = this.x + this.width;
+    // Helper: Exact Circle to Axis-Aligned Bounding Box intersection
+    const circleHitsRect = (rx, ry, rw, rh) => {
+      const closestX = Math.max(rx, Math.min(px, rx + rw));
+      const closestY = Math.max(ry, Math.min(py, ry + rh));
+      const dx = px - closestX;
+      const dy = py - closestY;
+      return (dx * dx + dy * dy) < (hitRadius * hitRadius);
+    };
 
-    if (px + hitRadius > obstacleLeft && px - hitRadius < obstacleRight) {
-      // Check top obstacle
-      if (py - hitRadius < topPipeBottom) return true;
-      // Check bottom obstacle
-      if (py + hitRadius > bottomPipeTop) return true;
+    // 1. Check Top Stone Portcullis Pillar
+    if (circleHitsRect(this.x, 0, this.width, topPipeBottom)) {
+      return true;
     }
 
-    // Pendulum blade special hitbox check if applicable
+    // 2. Check Bottom Stone Portcullis Pillar
+    if (circleHitsRect(this.x, bottomPipeTop, this.width, CONFIG.CANVAS_HEIGHT - bottomPipeTop)) {
+      return true;
+    }
+
+    // 3. Pendulum blade special hitbox check if Corridor of Blades
     if (this.isPendulum) {
       const bladePivotX = this.x + this.width / 2;
       const bladePivotY = topPipeBottom;
@@ -219,7 +227,7 @@ export class Obstacle {
       const bladeY = bladePivotY + Math.cos(this.pendulumAngle) * chainLen;
 
       const dist = Math.hypot(px - bladeX, py - bladeY);
-      if (dist < hitRadius + 18) {
+      if (dist < hitRadius + 16) {
         return true;
       }
     }

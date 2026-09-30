@@ -1,7 +1,7 @@
 /**
  * KNIGHTMARE: DUNGEONEER'S FLIGHT
  * Pure Web Audio API Synthesizer & Accessibility Audio/Captions Dispatcher
- * Zero external audio dependencies - 100% offline-ready & instant loading.
+ * Zero external audio dependencies - 100% offline-ready, leak-free & instant loading.
  */
 
 import { storage } from './storage.js';
@@ -15,8 +15,30 @@ class SoundSynthesizer {
     this.isMuted = false;
     this.isBgmPlaying = false;
     this.bgmOscillators = [];
+    this.bgmTimeout = null;
     this.heartbeatInterval = null;
+    this.captionListeners = [];
     this.speechAvailable = typeof window !== 'undefined' && 'speechSynthesis' in window;
+    this.isUnlocked = false;
+
+    this.setupAutoUnlock();
+  }
+
+  setupAutoUnlock() {
+    if (typeof window === 'undefined') return;
+    const unlock = () => {
+      if (this.isUnlocked) return;
+      this.ensureContext();
+      if (this.ctx && this.ctx.state === 'running') {
+        this.isUnlocked = true;
+        window.removeEventListener('pointerdown', unlock);
+        window.removeEventListener('keydown', unlock);
+        window.removeEventListener('touchstart', unlock);
+      }
+    };
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('keydown', unlock, { passive: true });
+    window.addEventListener('touchstart', unlock, { passive: true });
   }
 
   init() {
@@ -29,17 +51,20 @@ class SoundSynthesizer {
 
       // Master Gain
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(storage.getSetting('masterVolume') ?? 0.8, this.ctx.currentTime);
+      const masterVol = Number.isFinite(storage.getSetting('masterVolume')) ? storage.getSetting('masterVolume') : 0.8;
+      this.masterGain.gain.setValueAtTime(masterVol, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
       // SFX Gain
       this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.setValueAtTime(storage.getSetting('sfxVolume') ?? 0.8, this.ctx.currentTime);
+      const sfxVol = Number.isFinite(storage.getSetting('sfxVolume')) ? storage.getSetting('sfxVolume') : 0.8;
+      this.sfxGain.gain.setValueAtTime(sfxVol, this.ctx.currentTime);
       this.sfxGain.connect(this.masterGain);
 
       // Music Gain
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.setValueAtTime(storage.getSetting('musicVolume') ?? 0.4, this.ctx.currentTime);
+      const musicVol = Number.isFinite(storage.getSetting('musicVolume')) ? storage.getSetting('musicVolume') : 0.4;
+      this.musicGain.gain.setValueAtTime(musicVol, this.ctx.currentTime);
       this.musicGain.connect(this.masterGain);
     } catch (e) {
       console.warn('Web Audio API not supported in this browser.', e);
@@ -49,36 +74,59 @@ class SoundSynthesizer {
   ensureContext() {
     if (!this.ctx) this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
   }
 
   onCaption(listener) {
-    this.captionListeners.push(listener);
+    if (typeof listener === 'function') {
+      this.captionListeners.push(listener);
+    }
+  }
+
+  offCaption(listener) {
+    this.captionListeners = this.captionListeners.filter(l => l !== listener);
   }
 
   emitCaption(text, icon = '🔊', priority = 'normal') {
-    for (const listener of this.captionListeners) {
-      listener({ text, icon, priority, timestamp: Date.now() });
+    const payload = { text, icon, priority, timestamp: Date.now() };
+    for (const listener of this.captionListeners.slice()) {
+      try {
+        listener(payload);
+      } catch (err) {
+        console.error('Caption listener error:', err);
+      }
     }
   }
 
   setMasterVolume(val) {
-    if (this.masterGain && this.ctx) {
+    if (this.masterGain && this.ctx && Number.isFinite(val)) {
       this.masterGain.gain.setValueAtTime(Math.max(0, Math.min(1, val)), this.ctx.currentTime);
     }
   }
 
   setSfxVolume(val) {
-    if (this.sfxGain && this.ctx) {
+    if (this.sfxGain && this.ctx && Number.isFinite(val)) {
       this.sfxGain.gain.setValueAtTime(Math.max(0, Math.min(1, val)), this.ctx.currentTime);
     }
   }
 
   setMusicVolume(val) {
-    if (this.musicGain && this.ctx) {
+    if (this.musicGain && this.ctx && Number.isFinite(val)) {
       this.musicGain.gain.setValueAtTime(Math.max(0, Math.min(1, val)), this.ctx.currentTime);
     }
+  }
+
+  registerCleanup(osc, ...nodes) {
+    if (!osc) return;
+    osc.onended = () => {
+      try {
+        osc.disconnect();
+        for (const n of nodes) {
+          if (n && typeof n.disconnect === 'function') n.disconnect();
+        }
+      } catch (e) {}
+    };
   }
 
   // --- SOUND EFFECTS ---
@@ -88,7 +136,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Wing flutter noise + gentle sine impulse
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = 'triangle';
@@ -101,6 +148,7 @@ class SoundSynthesizer {
     osc.connect(gain);
     gain.connect(this.sfxGain);
 
+    this.registerCleanup(osc, gain);
     osc.start(now);
     osc.stop(now + 0.12);
 
@@ -125,6 +173,7 @@ class SoundSynthesizer {
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, gain);
       osc.start(now + idx * 0.05);
       osc.stop(now + idx * 0.05 + 0.28);
     });
@@ -150,6 +199,7 @@ class SoundSynthesizer {
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, gain);
       osc.start(now + idx * 0.06);
       osc.stop(now + idx * 0.06 + 0.45);
     });
@@ -162,7 +212,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Upward pleasant harp bite
     const notes = [329.63, 392.00, 493.88, 659.25]; // E minor triad
     notes.forEach((freq, i) => {
       const osc = this.ctx.createOscillator();
@@ -176,6 +225,7 @@ class SoundSynthesizer {
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, gain);
       osc.start(now + i * 0.04);
       osc.stop(now + i * 0.04 + 0.3);
     });
@@ -188,7 +238,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Slicing metal pendulum blade sound
     const osc = this.ctx.createOscillator();
     const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
@@ -210,6 +259,7 @@ class SoundSynthesizer {
     filter.connect(gain);
     gain.connect(this.sfxGain);
 
+    this.registerCleanup(osc, filter, gain);
     osc.start(now);
     osc.stop(now + 0.25);
 
@@ -221,7 +271,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Arcane burst with laser sweep and deep sub-boom
     const osc1 = this.ctx.createOscillator();
     const osc2 = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -241,6 +290,8 @@ class SoundSynthesizer {
     osc2.connect(gain);
     gain.connect(this.sfxGain);
 
+    this.registerCleanup(osc1, gain);
+    this.registerCleanup(osc2);
     osc1.start(now);
     osc2.start(now);
     osc1.stop(now + 0.5);
@@ -249,12 +300,42 @@ class SoundSynthesizer {
     this.emitCaption(`Spell invoked: ${spellName}!`, '⚡', 'high');
   }
 
+  playSpellCooldownFizzle() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(400, now);
+    filter.Q.setValueAtTime(6, now);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    this.registerCleanup(osc, filter, gain);
+    osc.start(now);
+    osc.stop(now + 0.15);
+
+    this.emitCaption('Spell recharging: Not ready yet!', '⏳', 'low');
+  }
+
   playShieldDeflect() {
     this.ensureContext();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Heavy iron clang
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = 'square';
@@ -267,6 +348,7 @@ class SoundSynthesizer {
     osc.connect(gain);
     gain.connect(this.sfxGain);
 
+    this.registerCleanup(osc, gain);
     osc.start(now);
     osc.stop(now + 0.3);
 
@@ -278,7 +360,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Metal shattered
     const osc1 = this.ctx.createOscillator();
     const osc2 = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -298,6 +379,8 @@ class SoundSynthesizer {
     osc2.connect(gain);
     gain.connect(this.sfxGain);
 
+    this.registerCleanup(osc1, gain);
+    this.registerCleanup(osc2);
     osc1.start(now);
     osc2.start(now);
     osc1.stop(now + 0.4);
@@ -311,7 +394,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Knightmare iconic two-tone alert
     const freqs = [587.33, 493.88]; // D5, B4
     freqs.forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
@@ -325,6 +407,7 @@ class SoundSynthesizer {
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, gain);
       osc.start(now + idx * 0.14);
       osc.stop(now + idx * 0.14 + 0.22);
     });
@@ -351,7 +434,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Double thump kick
     [0, 0.18].forEach(offset => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -365,6 +447,7 @@ class SoundSynthesizer {
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, gain);
       osc.start(now + offset);
       osc.stop(now + offset + 0.12);
     });
@@ -377,7 +460,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Triumphant retro brass fanfare chord: D minor / Royal cadence
     const notes = [
       { f: 293.66, t: 0, d: 0.18 }, // D4
       { f: 349.23, t: 0.14, d: 0.18 }, // F4
@@ -391,7 +473,6 @@ class SoundSynthesizer {
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(n.f, now + n.t);
 
-      // Low pass to soften into brass
       const filter = this.ctx.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(1400, now + n.t);
@@ -403,6 +484,7 @@ class SoundSynthesizer {
       filter.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, filter, gain);
       osc.start(now + n.t);
       osc.stop(now + n.t + n.d);
     });
@@ -416,7 +498,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Deep funeral church bell / gong with metallic resonance
     const freqs = [110, 164.8, 220, 311.1]; // Low A minor resonance
     freqs.forEach(freq => {
       const osc = this.ctx.createOscillator();
@@ -430,6 +511,7 @@ class SoundSynthesizer {
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, gain);
       osc.start(now);
       osc.stop(now + 2.2);
     });
@@ -442,7 +524,6 @@ class SoundSynthesizer {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Celestial harp sweep upward
     const arpeggio = [220, 277.18, 329.63, 440, 554.37, 659.25, 880];
     arpeggio.forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
@@ -456,6 +537,7 @@ class SoundSynthesizer {
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
+      this.registerCleanup(osc, gain);
       osc.start(now + idx * 0.07);
       osc.stop(now + idx * 0.07 + 0.4);
     });
@@ -476,6 +558,10 @@ class SoundSynthesizer {
 
   stopBgm() {
     this.isBgmPlaying = false;
+    if (this.bgmTimeout) {
+      clearTimeout(this.bgmTimeout);
+      this.bgmTimeout = null;
+    }
     for (const osc of this.bgmOscillators) {
       try {
         osc.stop();
@@ -527,13 +613,14 @@ class SoundSynthesizer {
         filter.connect(gain);
         gain.connect(this.musicGain);
 
+        this.registerCleanup(osc, filter, gain);
         osc.start(now);
         osc.stop(now + chordDuration);
         this.bgmOscillators.push(osc);
       });
 
-      // Cleanup finished oscillators
-      setTimeout(() => {
+      // Cleanup finished oscillators and schedule next chord
+      this.bgmTimeout = setTimeout(() => {
         this.bgmOscillators = this.bgmOscillators.slice(-12);
         if (this.isBgmPlaying) {
           playNextChord();
@@ -548,18 +635,23 @@ class SoundSynthesizer {
   speakTreguard(phrase) {
     if (!storage.getSetting('treguardVoice')) return;
     if (this.speechAvailable && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(phrase);
-      utterance.pitch = 0.85; // Regal, deep, theatrical
-      utterance.rate = 0.95;
-      utterance.volume = (storage.getSetting('masterVolume') ?? 0.8) * 0.9;
-      
-      // Try to choose an English UK voice for authentic British Knightmare vibe
-      const voices = window.speechSynthesis.getVoices();
-      const ukVoice = voices.find(v => v.lang.includes('en-GB') || v.name.includes('UK') || v.name.includes('British'));
-      if (ukVoice) utterance.voice = ukVoice;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(phrase);
+        utterance.pitch = 0.85; // Regal, deep, theatrical
+        utterance.rate = 0.95;
+        const masterVol = Number.isFinite(storage.getSetting('masterVolume')) ? storage.getSetting('masterVolume') : 0.8;
+        utterance.volume = masterVol * 0.9;
+        
+        // Try to choose an English UK voice for authentic British Knightmare vibe
+        const voices = window.speechSynthesis.getVoices();
+        const ukVoice = voices.find(v => v.lang.includes('en-GB') || v.name.includes('UK') || v.name.includes('British'));
+        if (ukVoice) utterance.voice = ukVoice;
 
-      window.speechSynthesis.speak(utterance);
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn('Speech synthesis error:', err);
+      }
     }
     this.emitCaption(`Treguard: "${phrase}"`, '🧙', 'normal');
   }
