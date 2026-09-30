@@ -75,6 +75,7 @@ export const CONFIG = {
     HORNS_OF_RESILIENCE: {
       id: 'HORNS_OF_RESILIENCE',
       name: 'Horns of Resilience',
+      category: 'VITALITY',
       description: 'Increases Maximum Life Force by +20% per tier.',
       maxTier: 5,
       costs: [100, 250, 500, 900, 1500],
@@ -84,6 +85,7 @@ export const CONFIG = {
     PLUME_OF_LEVITATION: {
       id: 'PLUME_OF_LEVITATION',
       name: 'Plume of Levitation',
+      category: 'FLIGHT',
       description: 'Reduces falling gravity by 8% per tier for gentler flutter.',
       maxTier: 5,
       costs: [150, 300, 600, 1100, 1800],
@@ -93,6 +95,7 @@ export const CONFIG = {
     DUNSHELM_MASONRY: {
       id: 'DUNSHELM_MASONRY',
       name: 'Dunshelm Masonry',
+      category: 'FLIGHT',
       description: 'Expands the safe gap between portcullises and blades by +12px per tier.',
       maxTier: 5,
       costs: [120, 280, 550, 1000, 1600],
@@ -102,6 +105,7 @@ export const CONFIG = {
     ALCHEMISTS_SATCHEL: {
       id: 'ALCHEMISTS_SATCHEL',
       name: "Alchemist's Satchel",
+      category: 'SORCERY',
       description: 'Increases gold coin drop value and spawn rates (+25% per tier).',
       maxTier: 5,
       costs: [80, 200, 450, 850, 1400],
@@ -111,6 +115,7 @@ export const CONFIG = {
     ARMOR_OF_JUSTICE: {
       id: 'ARMOR_OF_JUSTICE',
       name: 'Armor of Justice',
+      category: 'VITALITY',
       description: 'Grants an iron shield that absorbs 1 fatal obstacle strike per tier before cracking.',
       maxTier: 3,
       costs: [300, 750, 1600],
@@ -120,6 +125,7 @@ export const CONFIG = {
     SECOND_WIND: {
       id: 'SECOND_WIND',
       name: "Treguard's Second Wind",
+      category: 'VITALITY',
       description: 'Miraculously revives the dungeoneer once per run with 50% Life Force upon death.',
       maxTier: 1,
       costs: [1200],
@@ -129,6 +135,7 @@ export const CONFIG = {
     SPELL_AFFINITY: {
       id: 'SPELL_AFFINITY',
       name: 'Spellcraft Affinity',
+      category: 'SORCERY',
       description: 'Reduces spell cooldowns by 10% and extends spell duration by +15% per tier.',
       maxTier: 4,
       costs: [180, 400, 800, 1400],
@@ -138,6 +145,7 @@ export const CONFIG = {
     SCAVENGERS_LORE: {
       id: 'SCAVENGERS_LORE',
       name: "Scavenger's Lore",
+      category: 'SORCERY',
       description: 'Increases food spawn frequency and nutrition restored (+15% per tier).',
       maxTier: 4,
       costs: [100, 240, 520, 950],

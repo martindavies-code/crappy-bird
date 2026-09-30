@@ -34,23 +34,20 @@
       <aside class="treguard-scroll" aria-label="Treguard of Dunshelm's Counsel">
         <span class="treguard-avatar" aria-hidden="true">🧙</span>
         <div class="treguard-speech">
-          <span class="treguard-name">Treguard:</span>
+          <span class="treguard-name">Treguard of Dunshelm</span>
           <p id="treguard-banner-text" class="treguard-quote">"Enter, Stranger! Tread the path of peril, fly through the Corridor of Blades, and let not thy Life Force perish!"</p>
         </div>
       </aside>
 
       <!-- Navigation & Action Buttons -->
       <nav class="header-nav" aria-label="Main Controls">
-        <button id="btn-start-run" class="btn-royal btn-pulse" aria-label="Begin New Run into the Dungeon">
-          <span class="btn-icon" aria-hidden="true">⚡</span> Enter Dungeon
-        </button>
         <button id="btn-open-sanctuary" class="btn-royal" aria-label="Open Treguard's Sanctuary Upgrade Shop">
-          <span class="btn-icon" aria-hidden="true">🏛️</span> Sanctuary
+          <span class="btn-icon" aria-hidden="true">🏛️</span> Sanctuary <span id="header-gold-pill" class="header-gold-pill">0 🪙</span>
         </button>
-        <button id="btn-open-spellbook" class="btn-icon-square" aria-label="Open Spellbook and Dungeon Lore" title="Spellbook & Lore">
+        <button id="btn-open-spellbook" class="btn-icon-square" aria-label="Open Codex of Dunshelm and Spell Lore" title="Codex & Spells">
           <span aria-hidden="true">📜</span>
         </button>
-        <button id="btn-open-settings" class="btn-icon-square" aria-label="Open Accessibility & Controls Settings" title="Accessibility & Settings">
+        <button id="btn-open-settings" class="btn-icon-square" aria-label="Open Accessibility & Controls Settings" title="Settings & Accessibility">
           <span aria-hidden="true">⚙️</span>
         </button>
       </nav>
@@ -63,44 +60,44 @@
       <section class="game-hud" aria-label="Dungeon HUD">
         
         <!-- Knightmare Life Force Clock Component -->
-        <div class="hud-card lifeforce-card" aria-label="Life Force Clock Status">
+        <div class="hud-card lifeforce-card" id="hud-lifeforce-card" aria-label="Life Force Clock Status">
           <div class="lifeforce-face-wrapper" title="Knightmare Life Force Indicator">
             <canvas id="lifeforce-face-canvas" width="84" height="84" aria-hidden="true"></canvas>
           </div>
           <div class="lifeforce-metrics">
-            <span class="metric-title">LIFE FORCE</span>
+            <span class="metric-title">LIFE FORCE VITALITY</span>
             <div class="metric-main">
               <span id="lifeforce-percentage" class="metric-value">100%</span>
-              <span id="lifeforce-stage-pill" class="stage-pill">Green Visor (Plentiful)</span>
+              <span id="lifeforce-stage-pill" class="stage-pill stage-green">Green Visor</span>
             </div>
-            <div class="lifeforce-hint">Feed on rations to stay alive!</div>
+            <div class="lifeforce-hint">Eat rations to stave off the skull</div>
           </div>
         </div>
 
         <!-- Dungeon Progress & Location -->
-        <div class="hud-card chamber-card">
-          <span class="metric-title">DUNGEON CHAMBER</span>
+        <div class="hud-card chamber-card" aria-label="Dungeon Distance">
+          <span class="metric-title">CURRENT CHAMBER</span>
           <span id="hud-chamber-name" class="chamber-name">The Catacombs (Floor 1)</span>
           <div class="paces-row">
-            <span>Distance: <strong id="hud-paces">0 paces</strong></span>
-            <span class="paces-best">Best: <strong id="hud-best-paces">0 paces</strong></span>
+            <span class="distance-metric">Flight: <strong id="hud-paces">0 paces</strong></span>
+            <span class="paces-best">Record: <strong id="hud-best-paces">0 paces</strong></span>
           </div>
         </div>
 
         <!-- Treasury & Armor Shields -->
-        <div class="hud-card treasury-card">
+        <div class="hud-card treasury-card" aria-label="Gold and Armor">
           <div class="treasury-item">
             <span class="metric-title">DUNSHELM GOLD</span>
             <span id="hud-gold" class="metric-value gold-text">0 🪙</span>
           </div>
-          <div class="shields-row hidden" id="hud-shields-container">
-            <span class="metric-title">ARMOR</span>
-            <span id="hud-shields" class="shields-value">🛡️ × 1</span>
+          <div class="shields-row" id="hud-shields-container">
+            <span class="metric-title">ARMOR PLATING</span>
+            <span id="hud-shields" class="shields-value">🛡️ 0 Shields</span>
           </div>
         </div>
 
         <!-- Active Spell Slot -->
-        <div class="hud-card spell-card" id="hud-spell-slot">
+        <div class="hud-card spell-card" id="hud-spell-slot" aria-label="Arcane Spell Slot">
           <div class="spell-header">
             <span class="metric-title">ARCANE SPELL</span>
             <span id="hud-spell-cooldown" class="spell-cd-badge">READY</span>
@@ -133,26 +130,27 @@
             <h2 class="overlay-title">ENTER THE DUNGEONS OF DUNSHELM</h2>
             <p class="overlay-subtitle">A "Gongueslike" Flappy Adventure Inspired by the ITV Classic <em>Knightmare</em></p>
             
-            <div class="start-rules-grid">
-              <div class="rule-box">
-                <span class="rule-icon" aria-hidden="true">🪶</span>
-                <h3>Fly with Justice</h3>
-                <p>Don the horned Helmet of Justice. Flap using <strong>Space</strong>, <strong>Up Arrow</strong>, or <strong>Click / Tap</strong>.</p>
+            <div class="start-pillars-grid">
+              <div class="pillar-box">
+                <span class="pillar-icon" aria-hidden="true">🪶</span>
+                <div class="pillar-text">
+                  <h3>Fly with Justice</h3>
+                  <p><kbd>Space</kbd> or <kbd>Click</kbd> to fly through spiked portcullises and blades.</p>
+                </div>
               </div>
-              <div class="rule-box">
-                <span class="rule-icon" aria-hidden="true">⏳</span>
-                <h3>Watch Thy Life Force</h3>
-                <p>Life force drains constantly! Eat <strong>Apples</strong>, <strong>Knight's Pies</strong>, and <strong>Roast Fowl</strong> to stop the Skull from taking thee.</p>
+              <div class="pillar-box">
+                <span class="pillar-icon" aria-hidden="true">⏳</span>
+                <div class="pillar-text">
+                  <h3>Feed Thy Life Force</h3>
+                  <p>Life force drains constantly! Eat apples, pies, and fowl to survive.</p>
+                </div>
               </div>
-              <div class="rule-box">
-                <span class="rule-icon" aria-hidden="true">⚡</span>
-                <h3>Cast Ancient Spells</h3>
-                <p>Spell <strong>D-I-S-M-I-S-S</strong> with <strong>[E]</strong> to pulverize upcoming guillotine blades and spiked gates.</p>
-              </div>
-              <div class="rule-box">
-                <span class="rule-icon" aria-hidden="true">🏛️</span>
-                <h3>Roguelite Boons</h3>
-                <p>Collect Dunshelm Gold to unlock permanent stat enhancers in <strong>Treguard's Sanctuary</strong>!</p>
+              <div class="pillar-box">
+                <span class="pillar-icon" aria-hidden="true">⚡</span>
+                <div class="pillar-text">
+                  <h3>Cast Arcane Spells</h3>
+                  <p>Invoke <kbd>E</kbd> <strong>D-I-S-M-I-S-S</strong> to pulverize upcoming obstacles ahead.</p>
+                </div>
               </div>
             </div>
 
@@ -161,7 +159,7 @@
                 <span class="btn-icon" aria-hidden="true">⚔️</span> Enter the Dungeon (Space / Click)
               </button>
               <button id="btn-overlay-sanctuary" class="btn-royal" aria-label="Visit Treguard's Sanctuary to purchase permanent upgrades">
-                <span class="btn-icon" aria-hidden="true">🏛️</span> Visit Sanctuary
+                <span class="btn-icon" aria-hidden="true">🏛️</span> Treguard's Sanctuary
               </button>
             </div>
           </div>
@@ -221,6 +219,14 @@
         </div>
       </header>
 
+      <!-- Category Filter Tabs -->
+      <nav class="sanctuary-tabs" aria-label="Upgrade Categories" role="tablist">
+        <button class="tab-btn active" role="tab" aria-selected="true" data-category="ALL">All Boons</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-category="VITALITY">🛡️ Vitality & Armor</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-category="FLIGHT">🪶 Flight & Agility</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-category="SORCERY">✨ Sorcery & Spoils</button>
+      </nav>
+
       <div class="sanctuary-content">
         <div id="sanctuary-upgrades-grid" class="upgrades-grid" role="region" aria-label="Permanent Upgrades">
           <!-- Populated dynamically by game.js -->
@@ -241,35 +247,52 @@
         <p id="gameover-quote" class="gameover-treguard-quote">"Thy journey endeth here, Stranger... but Treguard awaits thy return!"</p>
       </header>
 
+      <!-- Primary Milestone Hero Box -->
+      <div class="postrun-hero-banner" id="postrun-hero-banner">
+        <div class="postrun-primary-metric">
+          <span class="postrun-hero-label">Distance Covered</span>
+          <span id="postrun-paces" class="postrun-hero-val">0 paces</span>
+        </div>
+        <div class="postrun-record-pill" id="postrun-record-pill">
+          <span class="record-label">Dunshelm Record:</span>
+          <strong id="postrun-best" class="record-val">0 paces</strong>
+        </div>
+      </div>
+
+      <!-- Supporting Run Spoils Grid -->
       <div class="gameover-stats-grid">
         <div class="stat-card">
-          <span class="stat-label">Distance Flown</span>
-          <span id="postrun-paces" class="stat-val">0 paces</span>
+          <span class="stat-icon" aria-hidden="true">🪙</span>
+          <div class="stat-text">
+            <span class="stat-label">Gold Plundered</span>
+            <span id="postrun-gold" class="stat-val gold-text">0 gold</span>
+          </div>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Dunshelm High Score</span>
-          <span id="postrun-best" class="stat-val">0 paces</span>
+          <span class="stat-icon" aria-hidden="true">🥧</span>
+          <div class="stat-text">
+            <span class="stat-label">Rations Consumed</span>
+            <span id="postrun-food" class="stat-val">0 rations</span>
+          </div>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Gold Plundered</span>
-          <span id="postrun-gold" class="stat-val gold-text">0 gold</span>
+          <span class="stat-icon" aria-hidden="true">⚡</span>
+          <div class="stat-text">
+            <span class="stat-label">Spells Cast</span>
+            <span id="postrun-spells" class="stat-val">0 spells</span>
+          </div>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Total Treasury</span>
-          <span id="postrun-total-gold" class="stat-val gold-text">0 gold</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Rations Consumed</span>
-          <span id="postrun-food" class="stat-val">0 rations</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Spells Cast</span>
-          <span id="postrun-spells" class="stat-val">0 spells</span>
+          <span class="stat-icon" aria-hidden="true">🏛️</span>
+          <div class="stat-text">
+            <span class="stat-label">Total Treasury</span>
+            <span id="postrun-total-gold" class="stat-val gold-text">0 gold</span>
+          </div>
         </div>
       </div>
 
       <footer class="dialog-footer">
-        <button id="btn-quick-restart" class="btn-royal btn-large">Try Again (Enter Dungeon)</button>
+        <button id="btn-quick-restart" class="btn-royal btn-large btn-pulse">Fly Again (Space / Click)</button>
         <button id="btn-postrun-sanctuary" class="btn-royal">Visit Treguard's Sanctuary</button>
       </footer>
     </div>

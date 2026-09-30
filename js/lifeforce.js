@@ -130,11 +130,11 @@ export class LifeForceClock {
 
   getStageDescription() {
     switch (this.stage) {
-      case LIFE_STAGE.GREEN: return { label: 'Green Visor', status: 'Plentiful', color: '#2ec4b6' };
-      case LIFE_STAGE.AMBER: return { label: 'Amber Guard', status: 'Warning', color: '#ffb703' };
-      case LIFE_STAGE.RED: return { label: 'Red Menace', status: 'Critical', color: '#e63946' };
-      case LIFE_STAGE.SKULL: return { label: 'Skull of Doom', status: 'Terminal', color: '#f8f9fa' };
-      default: return { label: 'Unknown', status: 'Stable', color: '#2ec4b6' };
+      case LIFE_STAGE.GREEN: return { stage: 'GREEN', label: 'Green Visor', status: 'Plentiful', color: '#2ec4b6' };
+      case LIFE_STAGE.AMBER: return { stage: 'AMBER', label: 'Amber Guard', status: 'Warning', color: '#ffb703' };
+      case LIFE_STAGE.RED: return { stage: 'RED', label: 'Red Menace', status: 'Critical', color: '#e63946' };
+      case LIFE_STAGE.SKULL: return { stage: 'SKULL', label: 'Skull of Doom', status: 'Terminal', color: '#f8f9fa' };
+      default: return { stage: 'GREEN', label: 'Unknown', status: 'Stable', color: '#2ec4b6' };
     }
   }
 

@@ -30,12 +30,14 @@ test('CONFIG: Constants, Spells, Chambers, and Speeches Integrity', () => {
   assert.ok(CONFIG.SPELLS.DISMISS.cooldown > 0);
   assert.ok(CONFIG.SPELLS.DISMISS.duration > 0);
 
-  // All 8 Sanctuary Upgrades verified
+  // All 8 Sanctuary Upgrades verified with category metadata
   const upgradeKeys = Object.keys(CONFIG.UPGRADES);
   assert.equal(upgradeKeys.length, 8);
+  const validCategories = ['VITALITY', 'FLIGHT', 'SORCERY'];
   for (const key of upgradeKeys) {
     const def = CONFIG.UPGRADES[key];
     assert.ok(def.name, `Upgrade ${key} missing name`);
+    assert.ok(validCategories.includes(def.category), `Upgrade ${key} missing or invalid category ${def.category}`);
     assert.ok(def.maxTier >= 1, `Upgrade ${key} invalid maxTier`);
     assert.equal(def.costs.length, def.maxTier, `Upgrade ${key} costs length mismatch`);
     for (const cost of def.costs) {

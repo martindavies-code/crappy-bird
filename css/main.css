@@ -4,41 +4,80 @@
    ========================================================================== */
 
 :root {
-  /* Core Dark Fantasy Palette */
-  --bg-dungeon-dark: #070a12;
-  --bg-dungeon-card: #111827;
-  --bg-stone-surface: #1e293b;
-  --bg-stone-border: #334155;
-  --bg-stone-hover: #283548;
+  /* Dunshelm Slate & Obsidian Surface Hierarchy */
+  --bg-dungeon-dark: #0a0d14;
+  --bg-dungeon-card: #121824;
+  --bg-dungeon-elevated: #1a2232;
+  --bg-stone-surface: #1e283a;
+  --bg-stone-border: #2e3a50;
+  --bg-stone-hover: #29354c;
 
-  --text-parchment: #f1f5f9;
-  --text-parchment-muted: #94a3b8;
-  --text-gold: #f59e0b;
-  --text-gold-bright: #fbbf24;
+  /* Weathered Parchment & Ink Typography */
+  --text-parchment: #e9e3d5;
+  --text-parchment-muted: #9fa7b8;
+  --text-parchment-dim: #647087;
 
-  --accent-gold: #d97706;
-  --accent-gold-glow: rgba(245, 158, 11, 0.35);
-  --accent-ruby: #ef4444;
-  --accent-teal: #10b981;
-  --accent-blue: #3b82f6;
+  /* Treguard Dunshelm Burnished Gold Story */
+  --gold-primary: #d4af37;
+  --gold-bright: #f3d068;
+  --gold-deep: #997819;
+  --gold-glow: rgba(212, 175, 55, 0.28);
+  
+  /* Semantic Knightmare Life Force Spectrum */
+  --life-green: #27ae60;
+  --life-green-glow: rgba(39, 174, 96, 0.35);
+  --life-amber: #e67e22;
+  --life-amber-glow: rgba(230, 126, 34, 0.4);
+  --life-red: #c0392b;
+  --life-red-glow: rgba(192, 57, 43, 0.5);
+  --life-skull: #f5f6fa;
 
-  /* Typography */
+  /* Arcane & Elemental Accents */
+  --arcane-magic: #8e44ad;
+  --arcane-shield: #2980b9;
+  --treguard-crimson: #7b1d28;
+
+  /* Typography System */
   --font-title: 'Cinzel', serif;
   --font-gothic: 'MedievalSharp', cursive, serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Sizing & Radius */
+  /* Modular Spacing Scale (Strict 4/8/12/16/24) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+
+  /* Harmonized Border Radius System (Strict 2-tier) */
+  --radius-inner: 6px;
+  --radius-card: 10px;
   --radius-sm: 6px;
   --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-lg: 10px;
+
+  /* Visual Depth */
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.55);
   --shadow-dungeon: 0 8px 30px rgba(0, 0, 0, 0.7);
-  --focus-ring: 3px solid #fbbf24;
+  --shadow-hero: 0 10px 40px rgba(0, 0, 0, 0.85);
+  --focus-ring: 2px solid var(--gold-bright);
+
+  /* Compatibility Aliases */
+  --accent-gold: var(--gold-primary);
+  --accent-gold-glow: var(--gold-glow);
+  --accent-ruby: var(--life-red);
+  --accent-teal: var(--life-green);
+  --accent-blue: var(--arcane-shield);
+  --text-gold: var(--gold-primary);
+  --text-gold-bright: var(--gold-bright);
 }
 
 /* Accessible High Contrast Override */
 body.high-contrast {
   --bg-dungeon-dark: #000000;
   --bg-dungeon-card: #0a0a0a;
+  --bg-dungeon-elevated: #151515;
   --bg-stone-surface: #121212;
   --bg-stone-border: #ffffff;
   --bg-stone-hover: #262626;
@@ -47,12 +86,17 @@ body.high-contrast {
   --text-parchment-muted: #e5e5e5;
   --text-gold: #ffeb3b;
   --text-gold-bright: #ffff00;
+  --gold-primary: #ffff00;
+  --gold-bright: #ffff00;
 
   --accent-gold: #ffff00;
   --accent-gold-glow: none;
   --accent-ruby: #ff3333;
   --accent-teal: #00ffaa;
   --accent-blue: #3399ff;
+  --life-green: #00ffaa;
+  --life-amber: #ffbb00;
+  --life-red: #ff3333;
   --focus-ring: 4px solid #ffff00;
 }
 
@@ -249,7 +293,19 @@ body {
 .header-nav {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
+}
+
+.header-gold-pill {
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 8px;
+  border-radius: var(--radius-inner);
+  font-size: 0.78rem;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  color: var(--gold-bright);
+  margin-left: 4px;
+  font-family: var(--font-body);
+  font-weight: 600;
 }
 
 /* ==========================================================================
@@ -394,10 +450,41 @@ body {
   font-size: 0.72rem;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 12px;
-  border: 1px solid #10b981;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--life-green);
+  color: var(--life-green);
+  background: rgba(34, 197, 94, 0.12);
+  transition: all 0.25s ease;
+}
+
+.stage-pill.stage-green {
+  border-color: var(--life-green);
+  color: var(--life-green);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.stage-pill.stage-amber {
+  border-color: var(--life-amber);
+  color: var(--life-amber);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.stage-pill.stage-red {
+  border-color: var(--life-red);
+  color: var(--life-red);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.stage-pill.stage-skull {
+  border-color: #ef4444;
+  color: #fca5a5;
+  background: rgba(153, 27, 27, 0.35);
+  animation: pulseSkull 1s infinite alternate;
+}
+
+@keyframes pulseSkull {
+  from { opacity: 0.8; box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+  to { opacity: 1; box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
 }
 
 .lifeforce-hint {
@@ -619,6 +706,52 @@ body {
   margin: 6px 0 20px 0;
 }
 
+.start-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  text-align: left;
+  margin-bottom: var(--space-5);
+}
+
+.pillar-box {
+  background: var(--bg-stone-surface);
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.pillar-box:hover {
+  border-color: var(--gold-primary);
+  background: var(--bg-stone-hover);
+}
+
+.pillar-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+.pillar-text h3 {
+  font-family: var(--font-title);
+  font-size: 0.88rem;
+  color: var(--gold-primary);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.pillar-text p {
+  font-size: 0.76rem;
+  color: var(--text-parchment-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
 .start-rules-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -821,6 +954,42 @@ kbd {
   gap: 12px;
 }
 
+/* Category Filter Tabs */
+.sanctuary-tabs {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-6);
+  background: var(--bg-dungeon-base);
+  border-bottom: 1px solid var(--bg-stone-border);
+  overflow-x: auto;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-parchment-muted);
+  font-family: var(--font-title);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-radius: var(--radius-inner) var(--radius-inner) 0 0;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--text-parchment);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tab-btn.active {
+  color: var(--gold-bright);
+  border-bottom-color: var(--gold-primary);
+  background: rgba(255, 215, 0, 0.08);
+}
+
 /* Sanctuary Upgrades Grid */
 .sanctuary-content {
   padding: 20px 24px;
@@ -928,6 +1097,7 @@ kbd {
 }
 
 /* Game Over Dialog */
+/* Game Over Post-run Debrief */
 .gameover-treguard-quote {
   font-style: italic;
   color: var(--text-gold);
@@ -935,34 +1105,114 @@ kbd {
   margin-top: 6px;
 }
 
+/* Primary Milestone Hero Box (Addresses anti-pattern #2 & #6) */
+.postrun-hero-banner {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+  border: 2px solid var(--gold-primary);
+  border-radius: var(--radius-card);
+  margin: var(--space-5) var(--space-6) var(--space-2) var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 215, 0, 0.2);
+}
+
+.postrun-primary-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.postrun-hero-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-primary);
+}
+
+.postrun-hero-val {
+  font-family: var(--font-title);
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.postrun-record-pill {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-inner);
+  padding: var(--space-2) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.record-label {
+  font-size: 0.7rem;
+  color: var(--text-parchment-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.record-val {
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+  color: var(--gold-bright);
+}
+
+/* Supporting Run Spoils Grid */
 .gameover-stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  padding: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-6) var(--space-5) var(--space-6);
 }
 
 .stat-card {
   background: var(--bg-stone-surface);
   border: 1px solid var(--bg-stone-border);
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  border-radius: var(--radius-inner);
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+.stat-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.stat-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  text-align: center;
+  gap: 2px;
+  min-width: 0;
 }
 
 .stat-label {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--text-parchment-muted);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-val {
   font-family: var(--font-title);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Settings Dialog */
@@ -1087,8 +1337,20 @@ kbd {
   .game-hud {
     grid-template-columns: 1fr 1fr;
   }
+  .start-pillars-grid {
+    grid-template-columns: 1fr;
+  }
   .start-rules-grid {
     grid-template-columns: 1fr;
+  }
+  .postrun-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+  .postrun-record-pill {
+    align-items: flex-start;
+    width: 100%;
   }
   .gameover-stats-grid {
     grid-template-columns: 1fr 1fr;

@@ -51,6 +51,7 @@ export class GameEngine {
     this.obstacleSpawnTimer = 0;
     this.treguardBannerTimer = 0;
     this.attractTime = 0;
+    this.activeSanctuaryCategory = 'ALL';
     
     this.initDOMReferences();
     this.initEventListeners();
@@ -261,6 +262,21 @@ export class GameEngine {
 
     // In-HUD Cast Spell button
     document.getElementById('btn-cast-spell')?.addEventListener('click', () => this.playerCastSpell());
+
+    // Sanctuary Category Tabs Filtering (Anti-pattern #4: Data dump in modal)
+    const sanctuaryTabs = document.querySelectorAll('.sanctuary-tabs .tab-btn');
+    sanctuaryTabs.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        sanctuaryTabs.forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        this.activeSanctuaryCategory = tab.getAttribute('data-category') || 'ALL';
+        this.renderSanctuaryUpgrades(this.activeSanctuaryCategory);
+      });
+    });
 
     // Settings Inputs Listeners
     this.setupSettingsListeners();
@@ -584,6 +600,20 @@ export class GameEngine {
       titleEl.textContent = reason === 'COLLISION' ? 'Crushed by the Dungeon!' : 'Life Force Extinguished!';
     }
 
+    // Elevate record achievement in milestone hero (Anti-patterns #2 & #6)
+    const recordPill = document.getElementById('postrun-record-pill');
+    if (recordPill) {
+      if (isNewHigh && this.distance > 0) {
+        recordPill.classList.add('new-record');
+        const label = recordPill.querySelector('.record-label');
+        if (label) label.textContent = '🌟 NEW DUNSHELM RECORD:';
+      } else {
+        recordPill.classList.remove('new-record');
+        const label = recordPill.querySelector('.record-label');
+        if (label) label.textContent = 'Dunshelm Record:';
+      }
+    }
+
     const deathQuote = CONFIG.TREGUARD_SPEECHES.DEATH[Math.floor(Math.random() * CONFIG.TREGUARD_SPEECHES.DEATH.length)];
     const quoteEl = document.getElementById('gameover-quote');
     if (quoteEl) quoteEl.textContent = `"${deathQuote}" — Treguard`;
@@ -594,21 +624,28 @@ export class GameEngine {
   }
 
   openSanctuary() {
-    this.renderSanctuaryUpgrades();
+    this.renderSanctuaryUpgrades(this.activeSanctuaryCategory || 'ALL');
+    const currentGold = storage.get('gold');
     const goldCounter = document.getElementById('sanctuary-gold-counter');
-    if (goldCounter) goldCounter.textContent = `${storage.get('gold')} 🪙`;
+    if (goldCounter) goldCounter.textContent = `${currentGold} 🪙`;
+    const headerGoldPill = document.getElementById('header-gold-pill');
+    if (headerGoldPill) headerGoldPill.textContent = `${currentGold} 🪙`;
     a11y.openModal('dialog-sanctuary');
     const quote = CONFIG.TREGUARD_SPEECHES.SANCTUARY[Math.floor(Math.random() * CONFIG.TREGUARD_SPEECHES.SANCTUARY.length)];
     audio.speakTreguard(quote);
-    a11y.announcePolite(`Entered Treguard's Sanctuary. Current treasury: ${storage.get('gold')} gold.`);
+    a11y.announcePolite(`Entered Treguard's Sanctuary. Current treasury: ${currentGold} gold.`);
   }
 
-  renderSanctuaryUpgrades() {
+  renderSanctuaryUpgrades(category = this.activeSanctuaryCategory || 'ALL') {
     const container = document.getElementById('sanctuary-upgrades-grid');
     if (!container) return;
     container.innerHTML = '';
 
     for (const key in CONFIG.UPGRADES) {
+      const def = CONFIG.UPGRADES[key];
+      if (category !== 'ALL' && def.category !== category) {
+        continue;
+      }
       const info = upgrades.getUpgradeInfo(key);
       const card = document.createElement('div');
       card.className = `upgrade-card ${info.isMax ? 'maxed' : ''}`;
@@ -645,7 +682,9 @@ export class GameEngine {
         if (res.success) {
           const goldCounter = document.getElementById('sanctuary-gold-counter');
           if (goldCounter) goldCounter.textContent = `${res.remainingGold} 🪙`;
-          this.renderSanctuaryUpgrades();
+          const headerGoldPill = document.getElementById('header-gold-pill');
+          if (headerGoldPill) headerGoldPill.textContent = `${res.remainingGold} 🪙`;
+          this.renderSanctuaryUpgrades(this.activeSanctuaryCategory || 'ALL');
           a11y.announcePolite(`Upgraded ${CONFIG.UPGRADES[id].name} to tier ${res.newTier}. Remaining gold: ${res.remainingGold}.`);
         } else {
           a11y.announceAssertive(res.reason);
@@ -877,16 +916,24 @@ export class GameEngine {
   syncHUD() {
     if (this.elPaces) this.elPaces.textContent = `${this.distance} paces`;
     if (this.elBest) this.elBest.textContent = `${Math.max(this.distance, storage.get('highScore'))} paces`;
-    if (this.elGold) this.elGold.textContent = `${storage.get('gold') + this.goldCollectedRun} 🪙`;
+    const totalGold = storage.get('gold') + this.goldCollectedRun;
+    if (this.elGold) this.elGold.textContent = `${totalGold} 🪙`;
+    const headerGoldPill = document.getElementById('header-gold-pill');
+    if (headerGoldPill) headerGoldPill.textContent = `${totalGold} 🪙`;
     if (this.elChamberName) this.elChamberName.textContent = this.getCurrentChamber().name;
 
-    // Shield status
+    // Shield status (Anti-pattern #5: Intuitive plain English labelling)
     if (this.elShields && this.elShieldsContainer) {
       if (this.dungeoneer.shields > 0) {
-        this.elShields.textContent = `🛡️ × ${this.dungeoneer.shields}`;
+        this.elShields.textContent = `🛡️ ${this.dungeoneer.shields} ${this.dungeoneer.shields === 1 ? 'Shield' : 'Shields'}`;
         this.elShieldsContainer.classList.remove('hidden');
       } else {
-        this.elShieldsContainer.classList.add('hidden');
+        this.elShields.textContent = '🛡️ 0 Shields';
+        if (upgrades.getStartingShields() === 0) {
+          this.elShieldsContainer.classList.add('hidden');
+        } else {
+          this.elShieldsContainer.classList.remove('hidden');
+        }
       }
     }
 
@@ -896,6 +943,8 @@ export class GameEngine {
     const stageDesc = this.lifeForce.getStageDescription();
     if (this.elLifeStage) {
       this.elLifeStage.textContent = `${stageDesc.label} (${stageDesc.status})`;
+      const stageClass = stageDesc.stage ? stageDesc.stage.toLowerCase() : 'green';
+      this.elLifeStage.className = `stage-pill stage-${stageClass}`;
       this.elLifeStage.style.borderColor = stageDesc.color;
       this.elLifeStage.style.color = stageDesc.color;
     }
