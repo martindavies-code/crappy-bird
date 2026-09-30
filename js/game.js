@@ -23,7 +23,11 @@ export const GAME_STATE = {
 
 export class GameEngine {
   constructor() {
+    if (typeof window !== 'undefined') {
+      window.gameEngine = this;
+    }
     this.canvas = document.getElementById('game-canvas');
+    if (!this.canvas) return;
     this.renderer = new GameRenderer(this.canvas);
     this.lifeClockCanvas = document.getElementById('lifeforce-face-canvas');
     this.lifeForce = new LifeForceClock(this.lifeClockCanvas);
@@ -148,12 +152,20 @@ export class GameEngine {
     window.addEventListener('keydown', (e) => this.handleKeyDown(e));
     window.addEventListener('keyup', (e) => this.handleKeyUp(e));
 
-    // Pointer / Touch on Canvas
-    this.canvas.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      if (this.state === GAME_STATE.TITLE) {
-        this.startNewRun();
-      } else if (this.state === GAME_STATE.GAMEOVER) {
+    // Pointer, Touch, and Click on Canvas & Viewport
+    let lastPointerDownTime = 0;
+    const handleActionInput = (e) => {
+      const now = performance.now();
+      // Deduplicate pointerdown followed immediately by synthetic click
+      if (e.type === 'click' && now - lastPointerDownTime < 350) {
+        return;
+      }
+      if (e.type === 'pointerdown') {
+        lastPointerDownTime = now;
+      }
+      if (e.cancelable) e.preventDefault();
+
+      if (this.state === GAME_STATE.TITLE || this.state === GAME_STATE.GAMEOVER) {
         this.startNewRun();
       } else if (this.state === GAME_STATE.PLAYING) {
         if (storage.getSetting('holdToRise')) {
@@ -162,10 +174,13 @@ export class GameEngine {
           this.playerFlap();
         }
       }
-    });
+    };
+
+    this.canvas.addEventListener('pointerdown', handleActionInput);
+    this.canvas.addEventListener('click', handleActionInput);
 
     this.canvas.addEventListener('pointerup', (e) => {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       if (storage.getSetting('holdToRise')) {
         this.dungeoneer.isHoldingRise = false;
       }
@@ -173,13 +188,43 @@ export class GameEngine {
 
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    // Canvas container fallback listener
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer) {
+      canvasContainer.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('dialog') || e.target.closest('#btn-overlay-sanctuary')) {
+          return;
+        }
+        if (this.state === GAME_STATE.TITLE || this.state === GAME_STATE.GAMEOVER) {
+          this.startNewRun();
+        }
+      });
+    }
+
+    // Start Screen overlay card listener: clicking anywhere on start overlay (except Sanctuary button) starts run
+    const startOverlay = document.getElementById('start-screen-card');
+    if (startOverlay) {
+      startOverlay.addEventListener('click', (e) => {
+        if (e.target.closest('#btn-overlay-sanctuary') || e.target.closest('#btn-open-sanctuary')) {
+          return;
+        }
+        this.startNewRun();
+      });
+    }
+
     // Connect UI Action Buttons - Header and Overlays
     const startRunFn = (e) => {
-      if (e) e.stopPropagation();
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       this.startNewRun();
     };
     const openSanctuaryFn = (e) => {
-      if (e) e.stopPropagation();
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       this.openSanctuary();
     };
 
@@ -869,11 +914,18 @@ export class GameEngine {
   }
 }
 
-// Robust initialization: runs immediately if DOM is ready, or on event
+// Robust initialization: ensures DOM and canvas are fully loaded before instantiating
 function initGameEngine() {
+  if (typeof document === 'undefined') return;
+  const canvas = document.getElementById('game-canvas');
+  if (!canvas) return; // Wait for DOM element availability
+
   if (typeof window !== 'undefined' && !window.gameEngine) {
     try {
       window.gameEngine = new GameEngine();
+      if (a11y && typeof a11y.init === 'function') {
+        a11y.init();
+      }
     } catch (err) {
       console.error('Failed to initialize Knightmare GameEngine:', err);
     }
@@ -886,5 +938,10 @@ if (typeof document !== 'undefined') {
     window.addEventListener('load', initGameEngine);
   } else {
     initGameEngine();
+    // Fallback if readyState was interactive before canvas was rendered
+    if (typeof window !== 'undefined' && !window.gameEngine) {
+      document.addEventListener('DOMContentLoaded', initGameEngine);
+      window.addEventListener('load', initGameEngine);
+    }
   }
 }

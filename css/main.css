@@ -538,6 +538,7 @@ body {
   transition: opacity 0.25s ease;
 }
 
+.hidden,
 .overlay-card.hidden {
   display: none !important;
 }

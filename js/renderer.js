@@ -9,9 +9,9 @@ import { storage } from './storage.js';
 export class GameRenderer {
   constructor(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.width = canvas.width;
-    this.height = canvas.height;
+    this.ctx = canvas && typeof canvas.getContext === 'function' ? canvas.getContext('2d') : null;
+    this.width = canvas ? canvas.width : CONFIG.CANVAS_WIDTH;
+    this.height = canvas ? canvas.height : CONFIG.CANVAS_HEIGHT;
 
     this.shakeIntensity = 0;
     this.shakeDuration = 0;

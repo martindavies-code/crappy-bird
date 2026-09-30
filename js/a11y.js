@@ -2,21 +2,46 @@
  * KNIGHTMARE: DUNGEONEER'S FLIGHT
  * Accessibility (a11y) Manager & WCAG AAA Compliance Suite
  * Screen reader live regions, closed captions HUD, motor assist, and sensory accommodations
- * Military-grade focus trapping, dialog lifecycle protection, and XSS-free DOM rendering.
+ * Military-grade deferred DOM initialization, zero-null body protection, and dialog lifecycle focus traps.
  */
 
 import { storage } from './storage.js';
 import { audio } from './audio.js';
 
+function setBodyClass(className, state) {
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.toggle(className, !!state);
+  }
+}
+
 export class AccessibilityManager {
   constructor() {
-    this.politeRegion = document.getElementById('a11y-live-polite');
-    this.assertiveRegion = document.getElementById('a11y-live-assertive');
-    this.captionsContainer = document.getElementById('captions-hud-list');
+    this.politeRegion = null;
+    this.assertiveRegion = null;
+    this.captionsContainer = null;
     
     this.recentCaptions = [];
     this.debounceTimer = null;
     this.previousFocusElement = null;
+    this.isInitialized = false;
+
+    // Defensively handle execution in <head> or before DOM is parsed
+    if (typeof document !== 'undefined') {
+      if (document.readyState === 'loading' || !document.body) {
+        document.addEventListener('DOMContentLoaded', () => this.init());
+      } else {
+        this.init();
+      }
+    }
+  }
+
+  init() {
+    if (this.isInitialized || typeof document === 'undefined') return;
+    this.isInitialized = true;
+
+    this.politeRegion = document.getElementById('a11y-live-polite');
+    this.assertiveRegion = document.getElementById('a11y-live-assertive');
+    this.captionsContainer = document.getElementById('captions-hud-list');
 
     this.initSystemWatchers();
     this.initCaptionsListener();
@@ -27,12 +52,11 @@ export class AccessibilityManager {
   initSystemWatchers() {
     if (typeof window === 'undefined' || !window.matchMedia) return;
 
-    // Watch prefers-reduced-motion
     try {
       const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
       const handleMotion = (e) => {
         if (storage.getSetting('reducedMotion') === undefined) {
-          document.body.classList.toggle('reduced-motion', e.matches);
+          setBodyClass('reduced-motion', e.matches);
         }
       };
       if (motionQuery.addEventListener) {
@@ -40,11 +64,10 @@ export class AccessibilityManager {
       }
       handleMotion(motionQuery);
 
-      // Watch prefers-contrast
       const contrastQuery = window.matchMedia('(prefers-contrast: more)');
       const handleContrast = (e) => {
         if (storage.getSetting('highContrast') === undefined) {
-          document.body.classList.toggle('high-contrast', e.matches);
+          setBodyClass('high-contrast', e.matches);
         }
       };
       if (contrastQuery.addEventListener) {
@@ -81,14 +104,17 @@ export class AccessibilityManager {
     const isReducedMotion = storage.getSetting('reducedMotion');
     const isDyslexic = storage.getSetting('dyslexicFont');
 
-    document.body.classList.toggle('high-contrast', !!isHighContrast);
-    document.body.classList.toggle('reduced-motion', !!isReducedMotion);
-    document.body.classList.toggle('dyslexic-font', !!isDyslexic);
+    setBodyClass('high-contrast', isHighContrast);
+    setBodyClass('reduced-motion', isReducedMotion);
+    setBodyClass('dyslexic-font', isDyslexic);
   }
 
   // --- SCREEN READER LIVE ANNOUNCEMENTS ---
 
   announcePolite(msg) {
+    if (!this.politeRegion) {
+      this.politeRegion = document?.getElementById('a11y-live-polite') || null;
+    }
     if (!this.politeRegion) return;
     clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
@@ -100,6 +126,9 @@ export class AccessibilityManager {
   }
 
   announceAssertive(msg) {
+    if (!this.assertiveRegion) {
+      this.assertiveRegion = document?.getElementById('a11y-live-assertive') || null;
+    }
     if (!this.assertiveRegion) return;
     this.assertiveRegion.textContent = '';
     requestAnimationFrame(() => {
@@ -111,6 +140,9 @@ export class AccessibilityManager {
 
   addCaption({ text, icon = '🔊', priority = 'normal' }) {
     if (!storage.getSetting('captionsEnabled')) return;
+    if (!this.captionsContainer) {
+      this.captionsContainer = document?.getElementById('captions-hud-list') || null;
+    }
     if (!this.captionsContainer) return;
 
     const id = 'cap-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
@@ -127,7 +159,11 @@ export class AccessibilityManager {
   }
 
   renderCaptions() {
+    if (!this.captionsContainer) {
+      this.captionsContainer = document?.getElementById('captions-hud-list') || null;
+    }
     if (!this.captionsContainer) return;
+
     this.captionsContainer.innerHTML = '';
     for (const c of this.recentCaptions) {
       const li = document.createElement('li');
@@ -140,7 +176,7 @@ export class AccessibilityManager {
 
       const textSpan = document.createElement('span');
       textSpan.className = 'caption-text';
-      textSpan.textContent = c.text; // Text content prevents any HTML injection
+      textSpan.textContent = c.text;
 
       li.appendChild(iconSpan);
       li.appendChild(document.createTextNode(' '));
@@ -158,7 +194,6 @@ export class AccessibilityManager {
     this.previousFocusElement = document.activeElement;
     dialog.showModal();
 
-    // Focus the first actionable button or close button
     const focusable = dialog.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
     if (focusable) {
       focusable.focus();
@@ -182,7 +217,7 @@ export class AccessibilityManager {
   toggleHighContrast(enable) {
     const state = enable ?? !storage.getSetting('highContrast');
     storage.setSetting('highContrast', state);
-    document.body.classList.toggle('high-contrast', state);
+    setBodyClass('high-contrast', state);
     this.announcePolite(`High contrast mode ${state ? 'enabled' : 'disabled'}.`);
     return state;
   }
@@ -190,7 +225,7 @@ export class AccessibilityManager {
   toggleReducedMotion(enable) {
     const state = enable ?? !storage.getSetting('reducedMotion');
     storage.setSetting('reducedMotion', state);
-    document.body.classList.toggle('reduced-motion', state);
+    setBodyClass('reduced-motion', state);
     this.announcePolite(`Reduced motion ${state ? 'enabled' : 'disabled'}.`);
     return state;
   }
@@ -198,7 +233,7 @@ export class AccessibilityManager {
   toggleDyslexicFont(enable) {
     const state = enable ?? !storage.getSetting('dyslexicFont');
     storage.setSetting('dyslexicFont', state);
-    document.body.classList.toggle('dyslexic-font', state);
+    setBodyClass('dyslexic-font', state);
     this.announcePolite(`Accessible dyslexic font ${state ? 'enabled' : 'disabled'}.`);
     return state;
   }
