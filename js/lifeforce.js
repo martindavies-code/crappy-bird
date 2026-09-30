@@ -170,218 +170,292 @@ export class LifeForceClock {
     // Outer Clock Medallion / Iron Frame
     ctx.save();
     
-    // Outer radial vignette
+    // Outer radial vignette & Bauhaus Dial
     const bgGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 40);
-    bgGrad.addColorStop(0, '#1e293b');
-    bgGrad.addColorStop(1, '#090d16');
+    bgGrad.addColorStop(0, '#1c1f28');
+    bgGrad.addColorStop(1, '#0e1017');
     ctx.fillStyle = bgGrad;
     ctx.beginPath();
     ctx.arc(cx, cy, 38, 0, Math.PI * 2);
     ctx.fill();
 
-    // Metallic ring with stage color
-    let ringColor = '#10b981';
-    let ringGlow = 'rgba(16, 185, 129, 0.4)';
+    // Bauhaus Precision Tick-Mark Gauge
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 12; i++) {
+      const angle = (i * Math.PI) / 6;
+      const x1 = cx + Math.cos(angle) * 35;
+      const y1 = cy + Math.sin(angle) * 35;
+      const x2 = cx + Math.cos(angle) * 38;
+      const y2 = cy + Math.sin(angle) * 38;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    // Modernist Outer Primary Ring
+    let ringColor = '#10b981'; // Bauhaus Emerald
+    let ringGlow = 'rgba(16, 185, 129, 0.45)';
     if (this.stage === LIFE_STAGE.AMBER) {
-      ringColor = '#f59e0b';
-      ringGlow = 'rgba(245, 158, 11, 0.5)';
+      ringColor = '#ffb703'; // Bauhaus Canary Yellow
+      ringGlow = 'rgba(255, 183, 3, 0.5)';
     } else if (this.stage === LIFE_STAGE.RED) {
-      ringColor = Math.sin(this.pulsePhase) > 0 ? '#ef4444' : '#b91c1c';
-      ringGlow = 'rgba(239, 68, 68, 0.8)';
+      ringColor = Math.sin(this.pulsePhase) > 0 ? '#e63946' : '#991b1b'; // Bauhaus Vermilion
+      ringGlow = 'rgba(230, 57, 70, 0.8)';
     } else if (this.stage === LIFE_STAGE.SKULL) {
-      ringColor = '#e2e8f0';
-      ringGlow = 'rgba(226, 232, 240, 0.2)';
+      ringColor = '#f8f6f0'; // Bauhaus Warm White
+      ringGlow = 'rgba(248, 246, 240, 0.3)';
     }
 
     ctx.shadowColor = ringGlow;
     ctx.shadowBlur = 8;
     ctx.strokeStyle = ringColor;
     ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 37.5, 0, Math.PI * 2);
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Horns of Justice on the helmet - Golden Curved Horns
-    const hornGrad = ctx.createLinearGradient(cx - 36, cy - 36, cx + 36, cy);
-    hornGrad.addColorStop(0, '#fef08a');
-    hornGrad.addColorStop(0.5, '#f59e0b');
-    hornGrad.addColorStop(1, '#b45309');
+    // --- BAUHAUS CONSTRUCTIVIST HORNS ---
+    // Pure geometric triangular wing-fins with bold modernist color blocks
+    const hornColor = (this.stage === LIFE_STAGE.SKULL) ? '#cbd5e1' : '#ffb703';
+    ctx.fillStyle = hornColor;
+    ctx.strokeStyle = '#111216';
+    ctx.lineWidth = 2;
 
-    ctx.fillStyle = hornGrad;
-    ctx.strokeStyle = '#451a03';
-    ctx.lineWidth = 1.8;
-
-    // Left Horn
+    // Left Geometric Horn Crest
     ctx.beginPath();
-    ctx.moveTo(cx - 16, cy - 10);
-    ctx.quadraticCurveTo(cx - 38, cy - 22, cx - 34, cy - 36);
-    ctx.quadraticCurveTo(cx - 24, cy - 24, cx - 12, cy - 16);
+    ctx.moveTo(cx - 15, cy - 10);
+    ctx.lineTo(cx - 36, cy - 32);
+    ctx.lineTo(cx - 28, cy - 12);
+    ctx.lineTo(cx - 14, cy - 4);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Right Horn
+    // Left Inner Horn Facet
+    ctx.fillStyle = '#f8f6f0';
     ctx.beginPath();
-    ctx.moveTo(cx + 16, cy - 10);
-    ctx.quadraticCurveTo(cx + 38, cy - 22, cx + 34, cy - 36);
-    ctx.quadraticCurveTo(cx + 24, cy - 24, cx + 12, cy - 16);
+    ctx.moveTo(cx - 15, cy - 10);
+    ctx.lineTo(cx - 30, cy - 26);
+    ctx.lineTo(cx - 22, cy - 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Right Geometric Horn Crest
+    ctx.fillStyle = hornColor;
+    ctx.beginPath();
+    ctx.moveTo(cx + 15, cy - 10);
+    ctx.lineTo(cx + 36, cy - 32);
+    ctx.lineTo(cx + 28, cy - 12);
+    ctx.lineTo(cx + 14, cy - 4);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // Base Head Shape
+    // Right Inner Horn Facet
+    ctx.fillStyle = '#f8f6f0';
+    ctx.beginPath();
+    ctx.moveTo(cx + 15, cy - 10);
+    ctx.lineTo(cx + 30, cy - 26);
+    ctx.lineTo(cx + 22, cy - 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // --- BAUHAUS OSKAR SCHLEMMER MASK FACE ---
     if (this.stage === LIFE_STAGE.SKULL) {
-      // --- SKULL OF DOOM ---
-      ctx.fillStyle = '#f8fafc';
+      // --- BAUHAUS SKULL OF DOOM ---
+      // Cranium: Pure geometric off-white circle
+      ctx.fillStyle = '#f8f6f0';
+      ctx.strokeStyle = '#111216';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(cx, cy - 4, 18, 0, Math.PI * 2);
+      ctx.arc(cx, cy - 4, 19, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#64748b';
-      ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Jawbone
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(cx - 10, cy + 8, 20, 10);
-      ctx.strokeRect(cx - 10, cy + 8, 20, 10);
+      // Lower Jaw: Clean constructivist rectangle
+      ctx.fillStyle = '#e2dfd2';
+      ctx.fillRect(cx - 10, cy + 9, 20, 11);
+      ctx.strokeRect(cx - 10, cy + 9, 20, 11);
 
-      // Hollow Eye Sockets
-      ctx.fillStyle = '#020617';
+      // Sockets: Pure circular black cutouts
+      ctx.fillStyle = '#111216';
       ctx.beginPath();
-      this.safeDrawEllipse(ctx, cx - 6, cy - 4, 4.5, 6, 0.1);
-      this.safeDrawEllipse(ctx, cx + 6, cy - 4, 4.5, 6, -0.1);
+      ctx.arc(cx - 6.5, cy - 3.5, 4.8, 0, Math.PI * 2);
+      ctx.arc(cx + 6.5, cy - 3.5, 4.8, 0, Math.PI * 2);
       ctx.fill();
 
-      // Nose Cavity
+      // Nasal Aperture: Crisp inverted equilateral triangle
       ctx.beginPath();
-      ctx.moveTo(cx, cy + 2);
-      ctx.lineTo(cx - 2.5, cy + 6);
-      ctx.lineTo(cx + 2.5, cy + 6);
+      ctx.moveTo(cx, cy + 5.5);
+      ctx.lineTo(cx - 3.5, cy + 1.5);
+      ctx.lineTo(cx + 3.5, cy + 1.5);
       ctx.closePath();
       ctx.fill();
 
-      // Teeth notches
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1.5;
+      // Minimalist vertical teeth bars
+      ctx.strokeStyle = '#111216';
+      ctx.lineWidth = 2;
       for (let t = -6; t <= 6; t += 3) {
         ctx.beginPath();
         ctx.moveTo(cx + t, cy + 9);
-        ctx.lineTo(cx + t, cy + 17);
+        ctx.lineTo(cx + t, cy + 20);
         ctx.stroke();
       }
 
     } else if (this.stage === LIFE_STAGE.RED) {
-      // --- RED MENACE (Flesh peeling, exposed teeth, burning red eyes) ---
-      const peelRatio = (32 - pct) / 32;
-      ctx.fillStyle = '#991b1b'; // Crimson flesh
+      // --- BAUHAUS RED MENACE (Constructivist Asymmetry) ---
+      // Left plane: Stark Onyx Black
+      ctx.fillStyle = '#111216';
       ctx.beginPath();
-      ctx.arc(cx, cy - 2, 20, 0, Math.PI * 2);
+      ctx.arc(cx, cy - 2, 21, Math.PI * 0.5, Math.PI * 1.5);
+      ctx.closePath();
       ctx.fill();
 
-      // Remaining iron helmet piece peeling upwards
-      const redHelmGrad = ctx.createLinearGradient(cx, cy - 24, cx, cy);
-      redHelmGrad.addColorStop(0, '#94a3b8');
-      redHelmGrad.addColorStop(1, '#334155');
-      ctx.fillStyle = redHelmGrad;
+      // Right plane: Electric Bauhaus Vermilion Red
+      ctx.fillStyle = '#e63946';
       ctx.beginPath();
-      ctx.arc(cx, cy - 8 - peelRatio * 4, 19, Math.PI, Math.PI * 2);
+      ctx.arc(cx, cy - 2, 21, Math.PI * 1.5, Math.PI * 0.5);
+      ctx.closePath();
       ctx.fill();
+
+      ctx.strokeStyle = '#111216';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 2, 21, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Glowing malevolent scarlet eyes
+      // Diagonal constructivist hazard bar cutting across the brow
+      ctx.fillStyle = '#ffb703';
+      ctx.beginPath();
+      ctx.moveTo(cx - 18, cy - 14);
+      ctx.lineTo(cx + 18, cy - 4);
+      ctx.lineTo(cx + 18, cy - 9);
+      ctx.lineTo(cx - 18, cy - 19);
+      ctx.closePath();
+      ctx.fill();
+
+      // Twin intense circular glowing sensors
       ctx.fillStyle = '#ff0055';
       ctx.shadowColor = '#ff0055';
       ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.arc(cx - 6.5, cy - 2, 3.5, 0, Math.PI * 2);
-      ctx.arc(cx + 6.5, cy - 2, 3.5, 0, Math.PI * 2);
+      ctx.arc(cx - 7, cy - 1, 4, 0, Math.PI * 2);
+      ctx.arc(cx + 7, cy - 1, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Exposed grin / teeth
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(cx - 8, cy + 8, 16, 5);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(cx - 8, cy + 8, 16, 5);
+      // Inner white pinpoint
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx - 7, cy - 1, 1.5, 0, Math.PI * 2);
+      ctx.arc(cx + 7, cy - 1, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Exposed horizontal cyber-jaw grid
+      ctx.fillStyle = '#f8f6f0';
+      ctx.fillRect(cx - 9, cy + 9, 18, 7);
+      ctx.strokeStyle = '#111216';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx - 9, cy + 9, 18, 7);
+      for (let t = -5; t <= 5; t += 3.5) {
+        ctx.beginPath();
+        ctx.moveTo(cx + t, cy + 9);
+        ctx.lineTo(cx + t, cy + 16);
+        ctx.stroke();
+      }
 
     } else if (this.stage === LIFE_STAGE.AMBER) {
-      // --- AMBER GUARD (Visor cracked, amber tone, eyes visible) ---
-      ctx.fillStyle = '#eab308'; // Rich amber
+      // --- BAUHAUS AMBER GUARD (Geometric Division) ---
+      // Cranium: Bauhaus Canary Yellow & Slate dual plane
+      ctx.fillStyle = '#242834';
       ctx.beginPath();
-      ctx.arc(cx, cy - 2, 20, 0, Math.PI * 2);
+      ctx.arc(cx, cy - 2, 21, 0, Math.PI * 2);
       ctx.fill();
 
-      // Peeling metal helmet cap
-      const amberHelmGrad = ctx.createLinearGradient(cx, cy - 24, cx, cy);
-      amberHelmGrad.addColorStop(0, '#cbd5e1');
-      amberHelmGrad.addColorStop(1, '#64748b');
-      ctx.fillStyle = amberHelmGrad;
+      ctx.fillStyle = '#ffb703';
       ctx.beginPath();
-      ctx.arc(cx, cy - 4, 20, Math.PI * 0.9, Math.PI * 2.1);
+      ctx.moveTo(cx - 18, cy - 18);
+      ctx.lineTo(cx + 18, cy - 2);
+      ctx.lineTo(cx + 18, cy + 18);
+      ctx.lineTo(cx - 18, cy + 18);
+      ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1.5;
+
+      ctx.strokeStyle = '#111216';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 2, 21, 0, Math.PI * 2);
       ctx.stroke();
 
-      // T-shaped Knightmare visor slit
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 12, cy - 5, 24, 4);
-      ctx.fillRect(cx - 2, cy - 5, 4, 15);
+      // Clean horizontal T-bar visor slit
+      ctx.fillStyle = '#111216';
+      ctx.fillRect(cx - 14, cy - 4.5, 28, 5);
+      ctx.fillRect(cx - 2.5, cy - 4.5, 5, 17);
 
-      // Warning amber eyes behind the slit
-      ctx.fillStyle = '#fbbf24';
-      ctx.shadowColor = '#fbbf24';
-      ctx.shadowBlur = 6;
+      // Geometric Amber circular optic sensors
+      ctx.fillStyle = '#ffb703';
+      ctx.shadowColor = '#ffb703';
+      ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.arc(cx - 6, cy - 3, 2.5, 0, Math.PI * 2);
-      ctx.arc(cx + 6, cy - 3, 2.5, 0, Math.PI * 2);
+      ctx.arc(cx - 7, cy - 2, 3, 0, Math.PI * 2);
+      ctx.arc(cx + 7, cy - 2, 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
     } else {
-      // --- GREEN VISOR (Pristine Knightly Armored Face) ---
-      const steelGrad = ctx.createLinearGradient(cx - 20, cy - 20, cx + 20, cy + 20);
-      steelGrad.addColorStop(0, '#f8fafc');
-      steelGrad.addColorStop(0.3, '#cbd5e1');
-      steelGrad.addColorStop(0.7, '#64748b');
-      steelGrad.addColorStop(1, '#334155');
-
-      ctx.fillStyle = steelGrad;
+      // --- BAUHAUS GREEN VISOR (Pure Geometric Harmony) ---
+      // Upper Cranium: Slate & Emerald color-blocked dome
+      ctx.fillStyle = '#242834';
       ctx.beginPath();
       ctx.arc(cx, cy - 2, 21, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#0f172a';
-      ctx.lineWidth = 2;
+
+      // Emerald top quadrant
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(cx, cy - 2, 21, Math.PI, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Lower Ivory Jaw plate
+      ctx.fillStyle = '#f8f6f0';
+      ctx.beginPath();
+      ctx.arc(cx, cy - 2, 21, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#111216';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 2, 21, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Green magical sheen overlay
-      ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
-      ctx.beginPath();
-      ctx.arc(cx, cy - 2, 21, 0, Math.PI * 2);
-      ctx.fill();
+      // Iconic Bauhaus T-bar Visor: Stark black geometry
+      ctx.fillStyle = '#111216';
+      ctx.fillRect(cx - 14, cy - 4.5, 28, 5.5);
+      ctx.fillRect(cx - 2.5, cy - 4.5, 5, 17);
 
-      // T-bar Knightmare visor slit
-      ctx.fillStyle = '#020617';
-      ctx.fillRect(cx - 13, cy - 5, 26, 5.5);
-      ctx.fillRect(cx - 2.5, cy - 5, 5, 17);
-
-      // Radiant glowing turquoise eyes
-      ctx.fillStyle = '#22d3ee';
-      ctx.shadowColor = '#06b6d4';
+      // Glowing Bauhaus Cyan/Teal Optic Nodes
+      ctx.fillStyle = '#06d6a0';
+      ctx.shadowColor = '#06d6a0';
       ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.arc(cx - 6, cy - 2.5, 2.8, 0, Math.PI * 2);
-      ctx.arc(cx + 6, cy - 2.5, 2.8, 0, Math.PI * 2);
+      ctx.arc(cx - 7, cy - 2, 3, 0, Math.PI * 2);
+      ctx.arc(cx + 7, cy - 2, 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Crest plume on top of helmet
+      // Bauhaus Semicircular Top Fin Crest
       ctx.fillStyle = '#10b981';
+      ctx.strokeStyle = '#111216';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      this.safeDrawEllipse(ctx, cx, cy - 23, 5, 9, 0);
+      ctx.arc(cx, cy - 22, 6, Math.PI, Math.PI * 2);
+      ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#047857';
-      ctx.lineWidth = 1;
       ctx.stroke();
     }
 
