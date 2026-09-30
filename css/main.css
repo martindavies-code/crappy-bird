@@ -121,6 +121,10 @@ body.reduced-motion *::after {
   top: 15px;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Base Document Styles */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -135,8 +139,10 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
+  padding: 14px 0 20px 0;
   overflow-x: hidden;
+  overflow-y: auto;
   background-image: 
     radial-gradient(circle at 50% 10%, rgba(30, 41, 59, 0.45), transparent 70%),
     radial-gradient(circle at 10% 90%, rgba(217, 119, 6, 0.08), transparent 50%);
@@ -146,7 +152,13 @@ body {
   width: 100%;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 12px 16px;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.game-main {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -652,14 +664,22 @@ body {
   background: var(--bg-dungeon-card);
   border: 1px solid var(--bg-stone-border);
   border-radius: var(--radius-md);
-  padding: 8px 16px;
+  padding: 0 16px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  box-sizing: border-box;
+  overflow: hidden;
+  contain: layout size;
 }
 
 .captions-hud-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-grow: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .captions-label {
@@ -667,13 +687,18 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--text-gold);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .captions-list {
   list-style: none;
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .caption-item {
@@ -682,10 +707,27 @@ body {
   border-radius: var(--radius-sm);
   padding: 3px 8px;
   font-size: 0.75rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+  flex-shrink: 1;
+  min-width: 0;
+  line-height: 1.2;
   animation: fadeIn 0.2s ease;
+}
+
+.caption-item .caption-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caption-item .caption-icon {
+  flex-shrink: 0;
 }
 
 .caption-item.priority-urgent {

@@ -146,16 +146,17 @@ export class AccessibilityManager {
     if (!this.captionsContainer) return;
 
     const id = 'cap-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
-    const item = { id, text: String(text), icon: String(icon), priority, expiresAt: Date.now() + 3800 };
+    const item = { id, text: String(text), icon: String(icon), priority, expiresAt: Date.now() + 3200 };
     this.recentCaptions.unshift(item);
-    if (this.recentCaptions.length > 3) this.recentCaptions.pop();
+    // Limit to max 2 active captions side-by-side to guarantee zero layout shift
+    if (this.recentCaptions.length > 2) this.recentCaptions.pop();
 
     this.renderCaptions();
 
     setTimeout(() => {
       this.recentCaptions = this.recentCaptions.filter(c => c.id !== id);
       this.renderCaptions();
-    }, 3800);
+    }, 3200);
   }
 
   renderCaptions() {
