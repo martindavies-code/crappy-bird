@@ -533,6 +533,9 @@ export class GameEngine {
     this.spellsCastRun = 0;
     this.currentChamberIndex = 0;
     this.obstacleSpawnTimer = 0;
+    this.advisorCalloutTimer = 0;
+    this.nextAdvisorInterval = 14 + Math.random() * 8;
+    this.goblinFeastTimer = 0;
 
     this.obstacles = [];
     this.collectibles = [];
@@ -581,6 +584,35 @@ export class GameEngine {
     storage.incrementStat('totalPaces', this.distance);
     storage.incrementStat('totalFoodEaten', this.foodEatenRun);
 
+    // Performance Rank calculation (S / A / B / C)
+    let rankLetter = 'C';
+    let rankTitle = 'Clod of Dunshelm';
+    let rankClass = 'rank-c';
+
+    if (this.distance >= 300 || (this.distance >= 180 && this.dungeoneer.comboCount >= 5)) {
+      rankLetter = 'S';
+      rankTitle = 'S-Rank: Dungeon Master';
+      rankClass = 'rank-s';
+    } else if (this.distance >= 140) {
+      rankLetter = 'A';
+      rankTitle = 'A-Rank: Knight of Justice';
+      rankClass = 'rank-a';
+    } else if (this.distance >= 60) {
+      rankLetter = 'B';
+      rankTitle = 'B-Rank: Stalwart Squire';
+      rankClass = 'rank-b';
+    }
+
+    const rankBadgeEl = document.getElementById('gameover-rank-badge');
+    if (rankBadgeEl) {
+      rankBadgeEl.className = `postrun-rank-badge ${rankClass}`;
+      rankBadgeEl.innerHTML = `<span class="rank-letter">${rankLetter}</span><span class="rank-title">${rankTitle}</span>`;
+    }
+
+    if (isNewHigh || rankLetter === 'S') {
+      this.particles.emitConfetti(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2, 75);
+    }
+
     // Populate Game Over Dialog
     const pacesEl = document.getElementById('postrun-paces');
     if (pacesEl) pacesEl.textContent = `${this.distance} paces`;
@@ -620,7 +652,7 @@ export class GameEngine {
     audio.speakTreguard(deathQuote);
 
     a11y.openModal('dialog-gameover');
-    a11y.announceAssertive(`Game over! ${reason === 'COLLISION' ? 'Fatal obstacle impact.' : 'Life force reached zero.'} You covered ${this.distance} paces and gathered ${this.goldCollectedRun} gold.`);
+    a11y.announceAssertive(`Game over! ${reason === 'COLLISION' ? 'Fatal obstacle impact.' : 'Life force reached zero.'} You covered ${this.distance} paces, rank ${rankLetter}, and gathered ${this.goldCollectedRun} gold.`);
   }
 
   openSanctuary() {
@@ -640,6 +672,88 @@ export class GameEngine {
     const container = document.getElementById('sanctuary-upgrades-grid');
     if (!container) return;
     container.innerHTML = '';
+
+    if (category === 'WARDROBE') {
+      const equipped = storage.get('equippedHelmet') || 'JUSTICE';
+      const unlocked = storage.get('unlockedHelmets') || ['JUSTICE'];
+      const playerGold = storage.get('gold');
+
+      for (const key in CONFIG.HELMETS) {
+        const helmet = CONFIG.HELMETS[key];
+        const isUnlocked = unlocked.includes(key);
+        const isEquipped = equipped === key;
+
+        const card = document.createElement('div');
+        card.className = `upgrade-card ${isEquipped ? 'equipped' : ''} ${isUnlocked ? 'unlocked' : ''}`;
+        card.setAttribute('tabindex', '0');
+
+        card.innerHTML = `
+          <div class="upgrade-header">
+            <span class="upgrade-icon" aria-hidden="true">${helmet.icon}</span>
+            <h3 class="upgrade-title">${helmet.name}</h3>
+          </div>
+          <p class="upgrade-desc">${helmet.desc}</p>
+          <div class="upgrade-tier-bar" role="status" aria-label="${helmet.name} aura">
+            <span class="wardrobe-trail-tag" style="color: ${helmet.visorColor}; font-size: 0.8rem; font-weight: bold; letter-spacing: 0.05em;">
+              Aura: ${helmet.trail.toUpperCase()}
+            </span>
+          </div>
+          <div class="upgrade-footer">
+            <span class="upgrade-tier-label">${isEquipped ? 'ACTIVE WARDROBE' : (isUnlocked ? 'OWNED' : `Price: ${helmet.cost} 🪙`)}</span>
+            ${isEquipped 
+              ? `<button class="btn-sanctuary-buy btn-equip-helmet equipped" disabled>EQUIPPED</button>`
+              : (isUnlocked
+                ? `<button class="btn-sanctuary-buy btn-equip-helmet can-afford" data-action="equip" data-helmet-id="${key}">EQUIP</button>`
+                : `<button class="btn-sanctuary-buy btn-equip-helmet ${playerGold >= helmet.cost ? 'can-afford' : 'disabled'}" data-action="unlock" data-helmet-id="${key}">
+                    Unlock: ${helmet.cost} 🪙
+                   </button>`
+              )
+            }
+          </div>
+        `;
+
+        container.appendChild(card);
+      }
+
+      // Wardrobe button listeners
+      container.querySelectorAll('.btn-equip-helmet:not([disabled])').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const action = e.target.getAttribute('data-action');
+          const hId = e.target.getAttribute('data-helmet-id');
+          if (action === 'equip') {
+            storage.set('equippedHelmet', hId);
+            this.dungeoneer.selectedHelmet = hId;
+            audio.playFlap(hId);
+            this.renderSanctuaryUpgrades('WARDROBE');
+            a11y.announcePolite(`Equipped ${CONFIG.HELMETS[hId].name}!`);
+          } else if (action === 'unlock') {
+            const hDef = CONFIG.HELMETS[hId];
+            if (storage.get('gold') >= hDef.cost) {
+              storage.addGold(-hDef.cost);
+              const curUnlocked = storage.get('unlockedHelmets') || ['JUSTICE'];
+              if (!curUnlocked.includes(hId)) {
+                curUnlocked.push(hId);
+                storage.set('unlockedHelmets', curUnlocked);
+              }
+              storage.set('equippedHelmet', hId);
+              this.dungeoneer.selectedHelmet = hId;
+              audio.playMidasShatter();
+              const currentGold = storage.get('gold');
+              const goldCounter = document.getElementById('sanctuary-gold-counter');
+              if (goldCounter) goldCounter.textContent = `${currentGold} 🪙`;
+              const headerGoldPill = document.getElementById('header-gold-pill');
+              if (headerGoldPill) headerGoldPill.textContent = `${currentGold} 🪙`;
+              this.renderSanctuaryUpgrades('WARDROBE');
+              a11y.announceAssertive(`Unlocked and equipped ${hDef.name}!`);
+            } else {
+              audio.playSpellCooldownFizzle();
+              a11y.announceAssertive(`Cannot afford ${hDef.name}. Required: ${hDef.cost} gold.`);
+            }
+          }
+        });
+      });
+      return;
+    }
 
     for (const key in CONFIG.UPGRADES) {
       const def = CONFIG.UPGRADES[key];
@@ -703,7 +817,8 @@ export class GameEngine {
 
     const userGameSpeed = storage.getSetting('gameSpeed') || 1.0;
     const spellTimeDilation = (this.dungeoneer.activeSpell === 'EYESHIELD') ? 0.45 : 1.0;
-    const dt = dtRaw * userGameSpeed * spellTimeDilation;
+    const powerupTimeDilation = (this.dungeoneer.activePowerup === 'TIME_DIAL') ? 0.45 : 1.0;
+    const dt = dtRaw * userGameSpeed * spellTimeDilation * powerupTimeDilation;
 
     this.update(dt);
     this.renderer.render({
@@ -757,7 +872,45 @@ export class GameEngine {
     // 4. Update Renderer Scroll & Parallax
     this.renderer.update(dt, scrollSpeed);
 
-    // 5. Spawn & Update Obstacles
+    // 5. In-Run Active Powerup Dynamic Effects
+    if (this.dungeoneer.activePowerup === 'MIDAS_TOUCH') {
+      for (const obs of this.obstacles) {
+        if (!obs.isGold && !obs.isDismissed && obs.x > this.dungeoneer.x - 20 && obs.x < this.dungeoneer.x + 380) {
+          obs.isGold = true;
+          this.particles.emitGoldSparkles(obs.x + obs.width / 2, obs.gapCenterY);
+          audio.playCoinStreak();
+        }
+      }
+    }
+
+    if (this.dungeoneer.activePowerup === 'GOBLIN_BANQUET') {
+      this.goblinFeastTimer = (this.goblinFeastTimer || 0) + dt;
+      if (this.goblinFeastTimer >= 0.42) {
+        this.goblinFeastTimer = 0;
+        const foodKeys = Object.keys(CONFIG.FOOD_TYPES);
+        const chosenType = CONFIG.FOOD_TYPES[foodKeys[Math.floor(Math.random() * foodKeys.length)]];
+        const dropX = this.dungeoneer.x + 120 + Math.random() * 240;
+        const dropY = 40 + Math.random() * (CONFIG.CANVAS_HEIGHT - 120);
+        this.collectibles.push(new Collectible(dropX, dropY, 'FOOD', chosenType));
+        this.particles.emit(dropX, dropY, 6, { color: '#fbbf24', sizeMin: 2, sizeMax: 4 });
+      }
+    }
+
+    // 6. Advisor direction comedy callouts
+    this.advisorCalloutTimer += dt;
+    if (this.advisorCalloutTimer >= this.nextAdvisorInterval) {
+      this.advisorCalloutTimer = 0;
+      this.nextAdvisorInterval = 14 + Math.random() * 10;
+      const callouts = CONFIG.ADVISOR_CALLOUTS || [];
+      if (callouts.length > 0) {
+        const callout = callouts[Math.floor(Math.random() * callouts.length)];
+        audio.playAdvisorCallout();
+        this.particles.addFloatingText(`🗣️ "${callout}"`, this.dungeoneer.x + 20, this.dungeoneer.y - 35, '#38bdf8', 16);
+        this.setTreguardBanner(`Advisor: "${callout}"`);
+      }
+    }
+
+    // 7. Spawn & Update Obstacles
     this.obstacleSpawnTimer += dt;
     const spawnThreshold = chamber.spacing / scrollSpeed;
     if (this.obstacleSpawnTimer > spawnThreshold) {
@@ -775,8 +928,42 @@ export class GameEngine {
         storage.incrementStat('totalObstaclesCleared');
       }
 
+      // Check near-miss razor clearance
+      if (obs.checkNearMiss(this.dungeoneer)) {
+        const combo = this.dungeoneer.addCombo();
+        const bonusPaces = combo * 3;
+        this.distance += bonusPaces;
+        audio.playNearMiss(combo);
+        this.renderer.triggerShake(4 + Math.min(combo * 1.2, 8), 0.15);
+        this.particles.emitNearMissSparks(this.dungeoneer.x + 15, this.dungeoneer.y);
+        this.particles.addFloatingText(`⚡ CLOSE SHAVE! +${bonusPaces} (x${combo})`, this.dungeoneer.x, this.dungeoneer.y - 25, '#38bdf8', 18, true);
+      }
+
       // Collision Check
       if (!obs.isDismissed && obs.collidesWith(this.dungeoneer)) {
+        // Gargoyle Dash invincible pulverization
+        if (this.dungeoneer.activePowerup === 'GARGOYLE_DASH') {
+          obs.dismiss();
+          audio.playMidasShatter();
+          this.renderer.triggerShake(14, 0.35);
+          this.particles.emitSpellExplosion(obs.x + obs.width / 2, obs.gapCenterY, '#ef4444');
+          this.particles.addFloatingText('💥 PULVERIZED!', obs.x, obs.gapCenterY, '#ef4444', 22);
+          this.distance += 15;
+          continue;
+        }
+
+        // Midas Gold obstacle shattering
+        if (obs.isGold) {
+          obs.dismiss();
+          audio.playMidasShatter();
+          const goldBonus = Math.round(15 * upgrades.getGoldMultiplier());
+          this.goldCollectedRun += goldBonus;
+          this.renderer.triggerShake(8, 0.25);
+          this.particles.emitGoldSparkles(obs.x + obs.width / 2, obs.gapCenterY);
+          this.particles.addFloatingText(`👑 +${goldBonus} GOLD!`, obs.x, obs.gapCenterY, '#fbbf24', 22);
+          continue;
+        }
+
         if (storage.getSetting('practiceMode')) {
           this.renderer.triggerShake(3, 0.2);
         } else {
@@ -811,8 +998,8 @@ export class GameEngine {
       }
     }
 
-    // 6. Update Collectibles
-    const hasMagnet = upgrades.hasRelic('SMIRKYS_AMULET');
+    // 8. Update Collectibles
+    const hasMagnet = upgrades.hasRelic('SMIRKYS_AMULET') || this.dungeoneer.activePowerup === 'MAGNETIC_AMULET';
     for (let i = this.collectibles.length - 1; i >= 0; i--) {
       const item = this.collectibles[i];
       item.update(dt, scrollSpeed, { x: this.dungeoneer.x, y: this.dungeoneer.y }, hasMagnet);
@@ -828,7 +1015,7 @@ export class GameEngine {
       }
     }
 
-    // 7. Update Particles
+    // 9. Update Particles
     this.particles.update(dt);
   }
 
@@ -842,50 +1029,68 @@ export class GameEngine {
     const spawnX = obs.x + obs.width / 2;
     const spawnY = obs.gapCenterY;
 
-    if (rand < 0.38) {
+    if (rand < 0.12) {
+      // Mystery Power-up Chest!
+      this.collectibles.push(new Collectible(spawnX, spawnY, 'CHEST', {}));
+    } else if (rand < 0.42) {
       // Spawn Food
       const foodKeys = Object.keys(CONFIG.FOOD_TYPES);
       const chosenType = CONFIG.FOOD_TYPES[foodKeys[Math.floor(Math.random() * foodKeys.length)]];
       this.collectibles.push(new Collectible(spawnX, spawnY, 'FOOD', chosenType));
-    } else if (rand < 0.75) {
+    } else if (rand < 0.78) {
       // Spawn Gold or Blood Ruby
-      if (Math.random() < 0.22) {
+      if (Math.random() < 0.25) {
         this.collectibles.push(new Collectible(spawnX, spawnY, 'RUBY', { value: 5 }));
       } else {
         this.collectibles.push(new Collectible(spawnX, spawnY, 'GOLD', { value: 1 }));
       }
-    } else if (rand < 0.88) {
+    } else if (rand < 0.90) {
       // Spawn Spell Scroll
       this.collectibles.push(new Collectible(spawnX, spawnY, 'SCROLL', { spell: 'DISMISS' }));
     }
   }
 
   collectItem(item) {
-    if (item.type === 'FOOD') {
+    if (item.type === 'CHEST') {
+      const pKeys = Object.keys(CONFIG.POWERUPS);
+      const chosenKey = pKeys[Math.floor(Math.random() * pKeys.length)];
+      const pDef = CONFIG.POWERUPS[chosenKey];
+      this.dungeoneer.applyPowerup(chosenKey);
+      audio.playChestOpen();
+      audio.playPowerup(chosenKey);
+      this.particles.emitConfetti(item.x, item.y, 40);
+      this.renderer.triggerShake(7, 0.25);
+      this.particles.addFloatingText(`${pDef.icon} ${pDef.name}!`, this.dungeoneer.x, this.dungeoneer.y - 30, '#fbbf24', 22);
+      this.setTreguardBanner(`Mystery Chest! ${pDef.name}: ${pDef.description}`);
+      a11y.announceAssertive(`Mystery powerup unleashed: ${pDef.name}!`);
+    } else if (item.type === 'FOOD') {
       const nutritionBonus = upgrades.getFoodNutritionMultiplier();
       const restored = item.payload.restore * nutritionBonus;
       this.lifeForce.feed(restored);
       this.foodEatenRun++;
       audio.playEatFood(item.payload.name);
-      this.particles.emit(item.x, item.y, 8, { color: '#06d6a0', sizeMin: 2, sizeMax: 4 });
+      this.particles.emit(item.x, item.y, 10, { color: '#06d6a0', sizeMin: 2, sizeMax: 5 });
+      this.particles.addFloatingText(`+${Math.round(restored)} LIFE! 🥧`, item.x, item.y - 20, '#06d6a0', 18);
       a11y.announcePolite(`Ate ${item.payload.name}. Life Force restored to ${this.lifeForce.getPercentage()}%.`);
     } else if (item.type === 'GOLD') {
       const mult = upgrades.getGoldMultiplier();
       const val = Math.round(item.payload.value * mult);
       this.goldCollectedRun += val;
-      audio.playCoin();
+      audio.playCoinStreak();
       this.particles.emitGoldSparkles(item.x, item.y);
+      this.particles.addFloatingText(`+${val} 🪙`, item.x, item.y - 20, '#ffd166', 17);
     } else if (item.type === 'RUBY') {
       const mult = upgrades.getGoldMultiplier();
       const val = Math.round(item.payload.value * mult);
       this.goldCollectedRun += val;
       audio.playRuby();
       this.particles.emitGoldSparkles(item.x, item.y);
+      this.particles.addFloatingText(`+${val} 💎`, item.x, item.y - 20, '#f43f5e', 20);
     } else if (item.type === 'SCROLL') {
-      // Recharge spell instantly
       this.dungeoneer.spellCooldowns.DISMISS = 0;
       audio.playRuby();
       this.particles.emitSpellExplosion(item.x, item.y, '#7209b7');
+      this.particles.addFloatingText('DISMISS READY! 📜', item.x, item.y - 20, '#c084fc', 19);
       this.setTreguardBanner('Spell Scroll gathered! DISMISS is charged!');
       a11y.announcePolite('Spell Scroll gathered! DISMISS is ready to cast!');
     }

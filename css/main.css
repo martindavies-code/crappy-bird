@@ -1125,6 +1125,71 @@ kbd {
   text-align: left;
 }
 
+.postrun-rank-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.postrun-rank-badge {
+  font-family: var(--font-title);
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 6px 14px;
+  border-radius: var(--radius-inner);
+  border: 1px solid var(--gold-primary);
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--gold-bright);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.postrun-rank-badge.rank-s {
+  border-color: #ffd166;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.4), rgba(120, 53, 15, 0.6));
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.5);
+  animation: pulseRank 1.5s infinite alternate;
+}
+
+.postrun-rank-badge.rank-a {
+  border-color: #38bdf8;
+  color: #e0f2fe;
+  background: rgba(14, 165, 233, 0.2);
+}
+
+.postrun-rank-badge.rank-b {
+  border-color: #10b981;
+  color: #d1fae5;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.postrun-rank-badge.rank-c {
+  border-color: #94a3b8;
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.15);
+}
+
+@keyframes pulseRank {
+  from { transform: scale(1); box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+  to { transform: scale(1.04); box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
+}
+
+.btn-equip-helmet {
+  background: #0284c7 !important;
+  border-color: #38bdf8 !important;
+  color: #fff !important;
+}
+
+.btn-equip-helmet:hover {
+  background: #0369a1 !important;
+}
+
+.upgrade-card.equipped {
+  border-color: #38bdf8;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+}
+
 .postrun-hero-label {
   font-size: 0.72rem;
   font-weight: 700;

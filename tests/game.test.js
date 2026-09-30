@@ -523,3 +523,99 @@ test('Collectibles & Particles: Magnetic Pull, Bounds, and Memory Reclamation', 
   ps.clear();
   assert.equal(ps.particles.length, 0);
 });
+
+// --- SUITE 17: NEAR-MISS CLOSE SHAVE, COMBOS & MIDAS TRANSMUTATION ---
+test('Arcade Juice: Near-Miss Detection, Combo Streaks, and Midas Transmutation', () => {
+  const chamber = CONFIG.CHAMBERS[0];
+  const obs = new Obstacle(300, chamber, 0);
+  const player = new Dungeoneer(300, obs.gapCenterY);
+
+  // Far from pipe edge: no near-miss
+  assert.equal(obs.checkNearMiss(player), false);
+
+  // Position player closely to upper spike edge within 26px but without collision
+  const topEdge = obs.gapCenterY - obs.gapHeight / 2;
+  player.y = topEdge + 18;
+  assert.equal(obs.checkNearMiss(player), true, 'Close shave within 28px must register near-miss');
+  // Second check must not duplicate
+  assert.equal(obs.checkNearMiss(player), false, 'Near-miss must only trigger once per obstacle');
+
+  // Combo system increments and resets on timeout
+  assert.equal(player.comboCount, 0);
+  const c1 = player.addCombo();
+  assert.equal(c1, 1);
+  assert.ok(player.comboTimer > 0);
+
+  const c2 = player.addCombo();
+  assert.equal(c2, 2);
+
+  // Fast forward past combo timer
+  player.update(4.0, 0, 0, 640);
+  assert.equal(player.comboCount, 0, 'Combo must reset when timer expires');
+
+  // Midas Transmutation state
+  assert.equal(obs.isGold, false);
+  obs.isGold = true;
+  assert.equal(obs.isGold, true);
+});
+
+// --- SUITE 18: POWERUPS, WARDROBE HELMETS & PERFORMANCE RANKS ---
+test('Powerups & Progression: Mystery Chests, Wardrobe Helmets, and S-Rank Evaluation', () => {
+  const player = new Dungeoneer(100, 200);
+
+  // Verify all 5 Powerups defined with icons and durations
+  const powerupKeys = Object.keys(CONFIG.POWERUPS);
+  assert.equal(powerupKeys.length, 5);
+  for (const p of powerupKeys) {
+    const def = CONFIG.POWERUPS[p];
+    assert.ok(def.name);
+    assert.ok(def.icon);
+    assert.ok(def.duration >= 4.0);
+  }
+
+  // Apply powerup and verify timer decay
+  player.applyPowerup('GARGOYLE_DASH');
+  assert.equal(player.activePowerup, 'GARGOYLE_DASH');
+  assert.equal(player.powerupTimeRemaining, CONFIG.POWERUPS.GARGOYLE_DASH.duration);
+
+  // Tick time partially
+  player.update(2.0, 0, 0, 640);
+  assert.equal(player.activePowerup, 'GARGOYLE_DASH');
+  assert.ok(player.powerupTimeRemaining > 0);
+
+  // Tick time to completion
+  player.update(3.0, 0, 0, 640);
+  assert.equal(player.activePowerup, null, 'Powerup must expire when duration runs out');
+
+  // Wardrobe Helmets defined
+  const helmetKeys = Object.keys(CONFIG.HELMETS);
+  assert.equal(helmetKeys.length, 5);
+  assert.deepEqual(helmetKeys.sort(), ['JESTER', 'JUSTICE', 'MIDAS', 'VALKYRIE', 'WARLOCK']);
+  for (const h of helmetKeys) {
+    const hDef = CONFIG.HELMETS[h];
+    assert.ok(hDef.name);
+    assert.ok(hDef.icon);
+    assert.ok(hDef.domeColor);
+    assert.ok(hDef.visorColor);
+    assert.ok(typeof hDef.cost === 'number');
+  }
+
+  // Storage defaults for Wardrobe
+  const sm = new StorageManager('test_wardrobe_store');
+  assert.equal(sm.get('equippedHelmet'), 'JUSTICE');
+  assert.deepEqual(sm.get('unlockedHelmets'), ['JUSTICE']);
+
+  // Mystery Chest collectible
+  const chest = new Collectible(200, 300, 'CHEST', {});
+  assert.equal(chest.type, 'CHEST');
+  assert.equal(chest.collidesWith(new Dungeoneer(200, 300)), true);
+
+  // Floating Combat Text
+  const ps = new ParticleSystem();
+  ps.addFloatingText('+50 GOLD! 👑', 100, 200, '#ffd166', 20);
+  assert.equal(ps.floatingTexts.length, 1);
+  assert.equal(ps.floatingTexts[0].text, '+50 GOLD! 👑');
+  ps.update(1.5);
+  assert.equal(ps.floatingTexts.length, 0, 'Floating text must fade and be reclaimed');
+});
+

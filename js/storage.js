@@ -29,6 +29,10 @@ const DEFAULT_STATE = {
     SPELL_AFFINITY: 0,
     SCAVENGERS_LORE: 0
   },
+
+  // Unlockable Wardrobe Helmets
+  equippedHelmet: 'JUSTICE',
+  unlockedHelmets: ['JUSTICE'],
   
   // Accessibility & User Preferences
   settings: {
@@ -116,6 +120,8 @@ export class StorageManager {
       totalSpellsCast: cleanNumber(parsed.totalSpellsCast, 0),
       totalObstaclesCleared: cleanNumber(parsed.totalObstaclesCleared, 0),
       upgrades: cleanUpgrades,
+      equippedHelmet: (typeof parsed.equippedHelmet === 'string' && CONFIG.HELMETS?.[parsed.equippedHelmet]) ? parsed.equippedHelmet : 'JUSTICE',
+      unlockedHelmets: (Array.isArray(parsed.unlockedHelmets) && parsed.unlockedHelmets.length > 0) ? parsed.unlockedHelmets : ['JUSTICE'],
       settings: { ...DEFAULT_STATE.settings, ...(parsed.settings || {}) }
     };
   }

@@ -20,6 +20,8 @@ class SoundSynthesizer {
     this.captionListeners = [];
     this.speechAvailable = typeof window !== 'undefined' && 'speechSynthesis' in window;
     this.isUnlocked = false;
+    this.coinStreak = 0;
+    this.lastCoinTime = 0;
 
     this.setupAutoUnlock();
   }
@@ -131,7 +133,7 @@ class SoundSynthesizer {
 
   // --- SOUND EFFECTS ---
 
-  playFlap() {
+  playFlap(helmetSkin = 'JUSTICE') {
     this.ensureContext();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -152,6 +154,23 @@ class SoundSynthesizer {
     osc.start(now);
     osc.stop(now + 0.12);
 
+    // Motley's Jester Cap Jingle Bell Bonus
+    if (helmetSkin === 'JESTER') {
+      [2093, 2637, 3136].forEach((f, i) => {
+        const bell = this.ctx.createOscillator();
+        const bellGain = this.ctx.createGain();
+        bell.type = 'sine';
+        bell.frequency.setValueAtTime(f, now + i * 0.02);
+        bellGain.gain.setValueAtTime(0.12, now + i * 0.02);
+        bellGain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.02 + 0.15);
+        bell.connect(bellGain);
+        bellGain.connect(this.sfxGain);
+        this.registerCleanup(bell, bellGain);
+        bell.start(now + i * 0.02);
+        bell.stop(now + i * 0.02 + 0.15);
+      });
+    }
+
     this.emitCaption('Wing flap flutter', '🪶', 'low');
   }
 
@@ -159,26 +178,174 @@ class SoundSynthesizer {
     this.ensureContext();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
+    const realNow = performance.now();
 
-    const freqs = [1318.5, 1760.0]; // E6, A6 high golden bell chime
-    freqs.forEach((freq, idx) => {
+    // Pentatonic scale escalation on fast consecutive coins (Pure arcade dopamine!)
+    if (realNow - this.lastCoinTime < 1300) {
+      this.coinStreak = Math.min(this.coinStreak + 1, 8);
+    } else {
+      this.coinStreak = 0;
+    }
+    this.lastCoinTime = realNow;
+
+    const scale = [987.77, 1174.66, 1318.51, 1567.98, 1760.00, 2093.00, 2349.32, 2637.02];
+    const baseFreq = scale[this.coinStreak % scale.length];
+
+    [baseFreq, baseFreq * 1.5].forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+
+      gain.gain.setValueAtTime(0.24, now + idx * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.26);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      this.registerCleanup(osc, gain);
+      osc.start(now + idx * 0.04);
+      osc.stop(now + idx * 0.04 + 0.26);
+    });
+
+    const caption = this.coinStreak > 3 ? `Gold Coin Streak! (${this.coinStreak}x)` : 'Gold coin collected';
+    this.emitCaption(caption, '🪙');
+  }
+
+  playNearMiss() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Razor blade resonance swish
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1600, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.16);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1800, now);
+    filter.Q.setValueAtTime(8, now);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    this.registerCleanup(osc, filter, gain);
+    osc.start(now);
+    osc.stop(now + 0.18);
+
+    // High sparkling resonance ping
+    const ping = this.ctx.createOscillator();
+    const pingGain = this.ctx.createGain();
+    ping.type = 'sine';
+    ping.frequency.setValueAtTime(2489, now + 0.02);
+    pingGain.gain.setValueAtTime(0.25, now + 0.02);
+    pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    ping.connect(pingGain);
+    pingGain.connect(this.sfxGain);
+    this.registerCleanup(ping, pingGain);
+    ping.start(now + 0.02);
+    ping.stop(now + 0.22);
+
+    this.emitCaption('CLOSE SHAVE! Adrenaline surge!', '⚡', 'high');
+  }
+
+  playPowerup(name = 'Arcane Boon') {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51];
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, now + idx * 0.05);
 
-      gain.gain.setValueAtTime(0.25, now + idx * 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.28);
+      gain.gain.setValueAtTime(0.28, now + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.4);
 
       osc.connect(gain);
       gain.connect(this.sfxGain);
 
       this.registerCleanup(osc, gain);
       osc.start(now + idx * 0.05);
-      osc.stop(now + idx * 0.05 + 0.28);
+      osc.stop(now + idx * 0.05 + 0.4);
     });
 
-    this.emitCaption('Gold coin collected', '🪙');
+    this.emitCaption(`Power-Up Invoked: ${name}!`, '✨', 'high');
+  }
+
+  playChestOpen() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Latch click
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.05);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    this.registerCleanup(osc, gain);
+    osc.start(now);
+    osc.stop(now + 0.05);
+
+    // Mystery chime
+    this.playPowerup('Mystery Treasure Chest');
+  }
+
+  playMidasShatter() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    [1760, 2200, 2640, 3100].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq + Math.random() * 80, now + idx * 0.03);
+      gain.gain.setValueAtTime(0.3, now + idx * 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.03 + 0.35);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      this.registerCleanup(osc, gain);
+      osc.start(now + idx * 0.03);
+      osc.stop(now + idx * 0.03 + 0.35);
+    });
+
+    this.emitCaption('Midas Gold Portcullis Shattered into coins!', '👑');
+  }
+
+  playAdvisorCallout() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    [440, 880].forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, now + i * 0.04);
+      gain.gain.setValueAtTime(0.15, now + i * 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.1);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      this.registerCleanup(osc, gain);
+      osc.start(now + i * 0.04);
+      osc.stop(now + i * 0.04 + 0.1);
+    });
   }
 
   playRuby() {
@@ -574,24 +741,37 @@ class SoundSynthesizer {
   scheduleBgmLoop() {
     if (!this.isBgmPlaying || !this.ctx) return;
 
-    const chords = [
-      [146.83, 220.00, 261.63], // D minor: D3, A3, C4
-      [130.81, 196.00, 261.63], // C major: C3, G3, C4
-      [116.54, 174.61, 233.08], // Bb major: Bb2, F3, Bb3
-      [110.00, 164.81, 220.00]  // A minor: A2, E3, A3
+    const progression = [
+      {
+        chord: [146.83, 220.00, 261.63], // D minor
+        bass: [73.42, 110.00, 146.83, 110.00, 130.81, 146.83, 110.00, 146.83]
+      },
+      {
+        chord: [130.81, 196.00, 261.63], // C major
+        bass: [65.41, 98.00, 130.81, 98.00, 116.54, 130.81, 98.00, 130.81]
+      },
+      {
+        chord: [116.54, 174.61, 233.08], // Bb major
+        bass: [58.27, 87.31, 116.54, 87.31, 103.83, 116.54, 87.31, 116.54]
+      },
+      {
+        chord: [110.00, 164.81, 220.00], // A minor
+        bass: [55.00, 82.41, 110.00, 82.41, 98.00, 110.00, 123.47, 146.83]
+      }
     ];
 
     let chordIndex = 0;
-    const chordDuration = 3.6; // seconds per chord
+    const chordDuration = 3.2; // seconds per chord measure
 
     const playNextChord = () => {
       if (!this.isBgmPlaying || !this.ctx) return;
 
       const now = this.ctx.currentTime;
-      const currentChord = chords[chordIndex % chords.length];
+      const current = progression[chordIndex % progression.length];
       chordIndex++;
 
-      currentChord.forEach(freq => {
+      // 1. Lush Gothic Pad Chord
+      current.chord.forEach(freq => {
         const osc = this.ctx.createOscillator();
         const filter = this.ctx.createBiquadFilter();
         const gain = this.ctx.createGain();
@@ -605,8 +785,8 @@ class SoundSynthesizer {
         filter.frequency.linearRampToValueAtTime(450, now + chordDuration);
 
         gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.18, now + 0.8);
-        gain.gain.setValueAtTime(0.18, now + chordDuration - 0.8);
+        gain.gain.linearRampToValueAtTime(0.14, now + 0.6);
+        gain.gain.setValueAtTime(0.14, now + chordDuration - 0.6);
         gain.gain.linearRampToValueAtTime(0.001, now + chordDuration);
 
         osc.connect(filter);
@@ -619,13 +799,39 @@ class SoundSynthesizer {
         this.bgmOscillators.push(osc);
       });
 
+      // 2. Energetic 8-note Chiptune Dungeon Bass Arpeggio
+      const noteStep = chordDuration / current.bass.length;
+      current.bass.forEach((bFreq, bIdx) => {
+        const bNow = now + bIdx * noteStep;
+        const bOsc = this.ctx.createOscillator();
+        const bGain = this.ctx.createGain();
+        bOsc.type = 'sawtooth';
+        bOsc.frequency.setValueAtTime(bFreq, bNow);
+
+        const bFilter = this.ctx.createBiquadFilter();
+        bFilter.type = 'lowpass';
+        bFilter.frequency.setValueAtTime(320, bNow);
+
+        bGain.gain.setValueAtTime(0.12, bNow);
+        bGain.gain.exponentialRampToValueAtTime(0.001, bNow + noteStep * 0.85);
+
+        bOsc.connect(bFilter);
+        bFilter.connect(bGain);
+        bGain.connect(this.musicGain);
+
+        this.registerCleanup(bOsc, bFilter, bGain);
+        bOsc.start(bNow);
+        bOsc.stop(bNow + noteStep * 0.85);
+        this.bgmOscillators.push(bOsc);
+      });
+
       // Cleanup finished oscillators and schedule next chord
       this.bgmTimeout = setTimeout(() => {
-        this.bgmOscillators = this.bgmOscillators.slice(-12);
+        this.bgmOscillators = this.bgmOscillators.slice(-16);
         if (this.isBgmPlaying) {
           playNextChord();
         }
-      }, (chordDuration - 0.1) * 1000);
+      }, (chordDuration - 0.08) * 1000);
     };
 
     playNextChord();

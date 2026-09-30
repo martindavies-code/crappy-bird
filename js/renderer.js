@@ -88,10 +88,17 @@ export class GameRenderer {
     // 4. Particle System
     this.renderParticles(gameState.particles);
 
-    // 5. Dungeoneer Player
+    // 5. Ghost Trails & Dungeoneer Player (Squash & Stretch)
+    this.renderGhostTrails(gameState.dungeoneer);
     this.renderDungeoneer(gameState.dungeoneer);
 
-    // 6. Foreground Ambience (Torchglow, Vignette, Fog)
+    // 6. Floating Score & Combat Numbers
+    this.renderFloatingTexts(gameState.particles.floatingTexts);
+
+    // 7. In-Game Canvas Overlays (Combos & Power-Up Gauge)
+    this.renderCanvasHUD(gameState.dungeoneer);
+
+    // 8. Foreground Ambience (Torchglow, Vignette, Fog)
     this.renderForegroundAmbience(gameState.currentChamber);
 
     ctx.restore();
@@ -209,27 +216,33 @@ export class GameRenderer {
 
     ctx.save();
 
-    // 1. Top Obstacle (Carved Stone Pillar + Spiked Portcullis Grill)
-    const stoneGrad = ctx.createLinearGradient(x, 0, x + w, 0);
-    stoneGrad.addColorStop(0, '#2c3340');
-    stoneGrad.addColorStop(0.5, '#475569');
-    stoneGrad.addColorStop(1, '#1e2430');
+    // 1. Top Obstacle (Carved Stone Pillar or Transmuted Midas Gold)
+    let stoneGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+    if (obs.isGold) {
+      stoneGrad.addColorStop(0, '#f59e0b');
+      stoneGrad.addColorStop(0.5, '#fef08a');
+      stoneGrad.addColorStop(1, '#d97706');
+    } else {
+      stoneGrad.addColorStop(0, '#2c3340');
+      stoneGrad.addColorStop(0.5, '#475569');
+      stoneGrad.addColorStop(1, '#1e2430');
+    }
 
     ctx.fillStyle = stoneGrad;
     ctx.fillRect(x, 0, w, topEnd - 32);
 
     // Decorative lintel / gargoyle rune block
-    ctx.fillStyle = '#64748b';
+    ctx.fillStyle = obs.isGold ? '#fbbf24' : '#64748b';
     ctx.fillRect(x - 5, topEnd - 42, w + 10, 14);
 
-    // Spiked iron bars descending from top
-    ctx.fillStyle = '#0f172a';
+    // Spiked bars descending from top
+    ctx.fillStyle = obs.isGold ? '#78350f' : '#0f172a';
     ctx.fillRect(x + 6, topEnd - 28, w - 12, 28);
 
-    // Iron spikes
+    // Spikes
     const spikeCount = 4;
     const spikeW = (w - 12) / spikeCount;
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = obs.isGold ? '#fde047' : '#94a3b8';
     for (let i = 0; i < spikeCount; i++) {
       const sx = x + 6 + i * spikeW;
       ctx.beginPath();
@@ -240,15 +253,15 @@ export class GameRenderer {
       ctx.fill();
     }
 
-    // 2. Bottom Obstacle (Spiked Portcullis Gate rising from the floor)
+    // 2. Bottom Obstacle (Spiked Portcullis Gate)
     ctx.fillStyle = stoneGrad;
     ctx.fillRect(x, botStart + 32, w, this.height - (botStart + 32));
 
-    ctx.fillStyle = '#64748b';
+    ctx.fillStyle = obs.isGold ? '#fbbf24' : '#64748b';
     ctx.fillRect(x - 5, botStart + 28, w + 10, 14);
 
     // Spikes pointing up
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = obs.isGold ? '#fde047' : '#94a3b8';
     for (let i = 0; i < spikeCount; i++) {
       const sx = x + 6 + i * spikeW;
       ctx.beginPath();
@@ -373,9 +386,42 @@ export class GameRenderer {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('⚡', cx, cy);
+
+    } else if (item.type === 'CHEST') {
+      // Mystery Treasure Chest with pulsing golden aura
+      ctx.font = '28px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🎁', cx, cy);
+
+      const pulse = (Math.sin(item.time * 5) + 1) * 0.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22 + pulse * 5, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 215, 0, ${0.4 + pulse * 0.4})`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
     }
 
     ctx.restore();
+  }
+
+  // Ghost trail afterimages for speed sensation
+  renderGhostTrails(player) {
+    if (!player.trailHistory || player.trailHistory.length === 0) return;
+    const ctx = this.ctx;
+
+    for (const t of player.trailHistory) {
+      if (t.alpha <= 0.05) continue;
+      ctx.save();
+      ctx.translate(t.x, t.y);
+      ctx.rotate(t.rotation);
+      ctx.globalAlpha = t.alpha * 0.4;
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(0, -6, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   // --- DUNGEONEER PLAYER RENDERING ---
@@ -392,6 +438,12 @@ export class GameRenderer {
     ctx.save();
     ctx.translate(px, py);
     ctx.rotate(player.rotation);
+
+    // Juice: Dynamic Squash & Stretch deformation!
+    ctx.scale(player.squashX || 1, player.squashY || 1);
+
+    const skinKey = player.selectedHelmet || 'JUSTICE';
+    const helmetDef = CONFIG.HELMETS[skinKey] || CONFIG.HELMETS.JUSTICE;
 
     // 1. Billowing Cloak Behind
     ctx.fillStyle = '#1e293b';
@@ -415,11 +467,10 @@ export class GameRenderer {
     ctx.ellipse(-2, 8, 12, 16, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 4. THE HELMET OF JUSTICE
-    // Distinctive curved horned iron helmet
-    // Left Horn
-    ctx.fillStyle = '#cbd5e1';
-    ctx.strokeStyle = '#334155';
+    // 4. THE HELMET (Customized by equipped helmet skin!)
+    // Left Horn / Wing / Point
+    ctx.fillStyle = helmetDef.hornColor;
+    ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 1.5;
 
     ctx.beginPath();
@@ -430,7 +481,7 @@ export class GameRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Right Horn
+    // Right Horn / Wing / Point
     ctx.beginPath();
     ctx.moveTo(8, -12);
     ctx.quadraticCurveTo(24, -28, 20, -36);
@@ -439,11 +490,20 @@ export class GameRenderer {
     ctx.fill();
     ctx.stroke();
 
+    // Special Motley Jester Bells on tips
+    if (skinKey === 'JESTER') {
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(-20, -36, 4, 0, Math.PI * 2);
+      ctx.arc(20, -36, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     // Dome of Helmet
     const helmetGrad = ctx.createLinearGradient(-16, -20, 16, 8);
-    helmetGrad.addColorStop(0, '#f1f5f9');
-    helmetGrad.addColorStop(0.5, '#64748b');
-    helmetGrad.addColorStop(1, '#1e293b');
+    helmetGrad.addColorStop(0, '#ffffff');
+    helmetGrad.addColorStop(0.4, helmetDef.domeColor);
+    helmetGrad.addColorStop(1, '#0f172a');
 
     ctx.fillStyle = helmetGrad;
     ctx.beginPath();
@@ -458,21 +518,46 @@ export class GameRenderer {
     ctx.fillRect(-12, -8, 24, 5);
     ctx.fillRect(-2.5, -8, 5, 16);
 
-    // Mystic Visor Eyes (Glowing soft blue/green)
-    ctx.fillStyle = '#2ec4b6';
-    ctx.shadowColor = '#2ec4b6';
-    ctx.shadowBlur = 6;
+    // Mystic Visor Eyes (Glowing with helmet/vitality color!)
+    const eyeColor = helmetDef.visorColor || '#2ec4b6';
+    ctx.fillStyle = eyeColor;
+    ctx.shadowColor = eyeColor;
+    ctx.shadowBlur = 8;
     ctx.beginPath();
-    ctx.arc(-6, -5.5, 2, 0, Math.PI * 2);
-    ctx.arc(6, -5.5, 2, 0, Math.PI * 2);
+    ctx.arc(-6, -5.5, 2.2, 0, Math.PI * 2);
+    ctx.arc(6, -5.5, 2.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
     // Helmet Crest Plume
-    ctx.fillStyle = '#06d6a0';
+    ctx.fillStyle = eyeColor;
     ctx.beginPath();
     ctx.ellipse(0, -24, 4, 8, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // 5. Active Powerup Overlays
+    if (player.activePowerup === 'GARGOYLE_DASH') {
+      // Sonic rush shockwave cone
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 36, -Math.PI * 0.4, Math.PI * 0.4);
+      ctx.stroke();
+    } else if (player.activePowerup === 'TIME_DIAL') {
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 38, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (player.activePowerup === 'MAGNETIC_AMULET') {
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 34 + Math.sin(Date.now() / 100) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     // 5. Active Spell & Armor Overlays
     // Armor of Justice: Rotating orbital shield runic glyphs
@@ -530,6 +615,87 @@ export class GameRenderer {
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    }
+  }
+
+  // --- FLOATING COMBAT & REWARD TEXT ---
+  renderFloatingTexts(floatingTexts) {
+    if (!floatingTexts || floatingTexts.length === 0) return;
+    const ctx = this.ctx;
+
+    for (const ft of floatingTexts) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, ft.alpha));
+      ctx.font = `bold ${Math.round(ft.size * ft.scale)}px sans-serif`;
+      ctx.fillStyle = ft.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 8;
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.restore();
+    }
+  }
+
+  // --- CANVAS IN-GAME HUD OVERLAYS (Combo Banner & Powerup Gauge) ---
+  renderCanvasHUD(player) {
+    const ctx = this.ctx;
+
+    // 1. Combo Multiplier Badge
+    if (player.comboCount > 1) {
+      ctx.save();
+      const cx = this.width / 2;
+      const cy = 60;
+      const pulse = 1 + Math.sin(Date.now() / 120) * 0.08;
+
+      ctx.translate(cx, cy);
+      ctx.scale(pulse, pulse);
+
+      // Badge pill
+      ctx.fillStyle = 'rgba(7, 10, 18, 0.85)';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-85, -18, 170, 36, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffd166';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 10;
+      ctx.fillText(`⚡ COMBO ×${player.comboCount}!`, 0, 0);
+
+      ctx.restore();
+    }
+
+    // 2. Active Power-Up Banner
+    if (player.activePowerup) {
+      const def = CONFIG.POWERUPS[player.activePowerup];
+      if (def) {
+        ctx.save();
+        const px = this.width / 2;
+        const py = player.comboCount > 1 ? 104 : 60;
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-110, -16, 220, 32, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const timeLeft = Math.max(0, player.powerupTimeRemaining).toFixed(1);
+        ctx.fillText(`${def.icon} ${def.name}: ${timeLeft}s`, 0, 0);
+
+        ctx.restore();
+      }
     }
   }
 

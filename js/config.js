@@ -265,6 +265,116 @@ export const CONFIG = {
     ]
   },
 
+  // In-Run Mystery Chest Power-Ups
+  POWERUPS: {
+    MIDAS_TOUCH: {
+      id: 'MIDAS_TOUCH',
+      name: 'Midas Transmutation',
+      icon: '👑',
+      duration: 6.0,
+      description: 'Turns upcoming iron portcullises into solid gold that shatter into coins!'
+    },
+    TIME_DIAL: {
+      id: 'TIME_DIAL',
+      name: 'Chrono Dial',
+      icon: '⏳',
+      duration: 5.0,
+      description: 'Slows dungeon time to bullet-speed for effortless blade dancing.'
+    },
+    GARGOYLE_DASH: {
+      id: 'GARGOYLE_DASH',
+      name: 'Gargoyle Rush',
+      icon: '🦅',
+      duration: 4.0,
+      description: 'Grants invincible forward velocity, blasting obstacles aside!'
+    },
+    GOBLIN_BANQUET: {
+      id: 'GOBLIN_BANQUET',
+      name: 'Goblin Feast',
+      icon: '🍗',
+      duration: 5.0,
+      description: 'Rains roasted fowl, apples, and pies across the dungeon!'
+    },
+    MAGNETIC_AMULET: {
+      id: 'MAGNETIC_AMULET',
+      name: 'Smirky’s Magnet',
+      icon: '🧲',
+      duration: 7.0,
+      description: 'Magnetically pulls all gold, rubies, and food across the screen!'
+    }
+  },
+
+  // Unlockable Cosmetic Helmets in Sanctuary Wardrobe
+  HELMETS: {
+    JUSTICE: {
+      id: 'JUSTICE',
+      name: 'Helmet of Justice',
+      cost: 0,
+      icon: '🪖',
+      desc: 'The iconic horned iron helm of ITV Knightmare. Sturdy and true.',
+      hornColor: '#cbd5e1',
+      domeColor: '#64748b',
+      visorColor: '#2ec4b6',
+      trail: 'smoke'
+    },
+    MIDAS: {
+      id: 'MIDAS',
+      name: 'Crown of Midas',
+      cost: 350,
+      icon: '👑',
+      desc: 'Forged from pure Dunshelm gold. Emits shimmering coin sparkles.',
+      hornColor: '#ffd166',
+      domeColor: '#f59e0b',
+      visorColor: '#ffff00',
+      trail: 'gold'
+    },
+    WARLOCK: {
+      id: 'WARLOCK',
+      name: 'Warlock’s Cowl',
+      cost: 550,
+      icon: '🔮',
+      desc: 'Imbued with violet void runes. Leaves a mystical stardust trail.',
+      hornColor: '#c084fc',
+      domeColor: '#4c1d95',
+      visorColor: '#e879f9',
+      trail: 'void'
+    },
+    JESTER: {
+      id: 'JESTER',
+      name: 'Motley’s Jester Cap',
+      cost: 450,
+      icon: '🃏',
+      desc: 'Jingles with laughter on every flap! Plays cheerful jingle bells.',
+      hornColor: '#ef4444',
+      domeColor: '#10b981',
+      visorColor: '#38bdf8',
+      trail: 'confetti'
+    },
+    VALKYRIE: {
+      id: 'VALKYRIE',
+      name: 'Valkyrie Winghelm',
+      cost: 750,
+      icon: '🪶',
+      desc: 'Adorned with divine winged crests that flutter in the draft.',
+      hornColor: '#e2e8f0',
+      domeColor: '#0ea5e9',
+      visorColor: '#38bdf8',
+      trail: 'feather'
+    }
+  },
+
+  // Classic Knightmare Advisors' Hilarious Direction Callouts
+  ADVISOR_CALLOUTS: [
+    'Step left! No, YOUR left!',
+    'Sidestep! Mind the razor blade!',
+    'Pick up the pie, you fool!',
+    'Spellcasting... D-I-S-M-I-S-S!',
+    'Look out! Portcullis dropping!',
+    'Duck! No, flap up!',
+    'Beware the spinning blade!',
+    'Eat the chicken! Life force is dropping!'
+  ],
+
   // Default Keyboard Controls
   DEFAULT_CONTROLS: {
     flap: ['Space', 'ArrowUp', 'KeyW', 'Enter', 'Numpad0'],
