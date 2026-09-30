@@ -6,6 +6,8 @@
 [![Theme](https://img.shields.io/badge/Theme-ITV%20Knightmare-amber.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)]()
 
+### 🎮 **[Play Live in Your Browser: https://martindavies-code.github.io/crappy-bird/](https://martindavies-code.github.io/crappy-bird/)**
+
 > *"Enter, Stranger! Tread the path of peril, fly through the Corridor of Blades, and let not thy Life Force perish into bone and ash!"* — **Treguard of Dunshelm**
 
 An accessible, roguelite ("gongueslike") flappy bird adventure steeped in the dark fantasy aesthetic of the legendary late 80s/90s British television kids show **Knightmare** (ITV/Broadsword).
