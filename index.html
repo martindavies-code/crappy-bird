@@ -125,6 +125,11 @@
         <!-- START SCREEN OVERLAY CARD -->
         <div id="start-screen-card" class="overlay-card">
           <div class="overlay-content">
+            <div class="hero-banner-frame">
+              <img src="assets/knightmare_splash.jpg" alt="Castle Dunshelm with Dungeoneer in Helmet of Justice" class="hero-banner-image">
+              <div class="hero-banner-badge">CASTLE DUNSHELM</div>
+            </div>
+
             <h2 class="overlay-title">ENTER THE DUNGEONS OF DUNSHELM</h2>
             <p class="overlay-subtitle">A "Gongueslike" Flappy Adventure Inspired by the ITV Classic <em>Knightmare</em></p>
             
@@ -152,10 +157,10 @@
             </div>
 
             <div class="start-actions">
-              <button class="btn-royal btn-large" onclick="window.gameEngine.startNewRun()">
-                <span class="btn-icon" aria-hidden="true">🛡️</span> Enter the Dungeon
+              <button id="btn-overlay-start" class="btn-royal btn-large btn-pulse" aria-label="Enter the Dungeon and begin flight (Press Space or Click)">
+                <span class="btn-icon" aria-hidden="true">⚔️</span> Enter the Dungeon (Space / Click)
               </button>
-              <button class="btn-royal" onclick="window.gameEngine.openSanctuary()">
+              <button id="btn-overlay-sanctuary" class="btn-royal" aria-label="Visit Treguard's Sanctuary to purchase permanent upgrades">
                 <span class="btn-icon" aria-hidden="true">🏛️</span> Visit Sanctuary
               </button>
             </div>
@@ -168,9 +173,9 @@
             <h2 class="overlay-title">JOURNEY PAUSED</h2>
             <p class="overlay-subtitle">"Rest thy weary wings awhile, Stranger." — Treguard</p>
             <div class="pause-actions">
-              <button class="btn-royal btn-large" onclick="window.gameEngine.togglePause()">Resume Flight [Esc]</button>
-              <button class="btn-royal" onclick="window.gameEngine.openSanctuary()">Treguard's Sanctuary</button>
-              <button class="btn-royal" onclick="a11y.openModal('dialog-settings')">Settings & Accessibility</button>
+              <button id="btn-pause-resume" class="btn-royal btn-large">Resume Flight [Esc]</button>
+              <button id="btn-pause-sanctuary" class="btn-royal">Treguard's Sanctuary</button>
+              <button id="btn-pause-settings" class="btn-royal">Settings & Accessibility</button>
             </div>
           </div>
         </div>

@@ -45,15 +45,54 @@ export class GameEngine {
     this.obstacleSpawnTimer = 0;
     this.treguardBannerTimer = 0;
     this.timeScale = 1.0;           // Modified by Eyeshield spell or assist mode
+    this.attractTime = 0;
     
     this.initDOMReferences();
     this.initEventListeners();
     this.renderer.resize();
 
-    // Initial render
+    // Initial render & attract mode
     this.lifeForce.reset(upgrades.getMaxLifeForce());
     this.lifeForce.renderFace();
     this.syncHUD();
+    this.startAttractMode();
+  }
+
+  startAttractMode() {
+    const loop = () => {
+      if (this.state !== GAME_STATE.TITLE) return;
+      const dt = 0.016;
+      this.attractTime += dt;
+
+      // Gentle levitation hovering for the Dungeoneer
+      this.dungeoneer.y = 320 + Math.sin(this.attractTime * 2.5) * 16;
+      this.dungeoneer.vy = Math.cos(this.attractTime * 2.5) * 20;
+      this.dungeoneer.rotation = Math.sin(this.attractTime * 2.5) * 0.08;
+
+      // Soft magical levitation particles
+      if (Math.random() < 0.2) {
+        this.particles.emit(this.dungeoneer.x - 8, this.dungeoneer.y + 12, 1, {
+          color: '#22d3ee',
+          sizeMin: 1.5,
+          sizeMax: 3,
+          speedMin: 10,
+          speedMax: 30
+        });
+      }
+      this.particles.update(dt);
+      this.renderer.update(dt, 35); // Gentle scenic drift
+
+      this.renderer.render({
+        dungeoneer: this.dungeoneer,
+        obstacles: [],
+        collectibles: [],
+        particles: this.particles,
+        currentChamber: this.getCurrentChamber()
+      });
+
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
   }
 
   initDOMReferences() {
@@ -87,7 +126,11 @@ export class GameEngine {
     // Pointer / Touch on Canvas
     this.canvas.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      if (this.state === GAME_STATE.PLAYING) {
+      if (this.state === GAME_STATE.TITLE) {
+        this.startNewRun();
+      } else if (this.state === GAME_STATE.GAMEOVER) {
+        this.startNewRun();
+      } else if (this.state === GAME_STATE.PLAYING) {
         if (storage.getSetting('holdToRise')) {
           this.dungeoneer.isHoldingRise = true;
         } else {
@@ -106,11 +149,33 @@ export class GameEngine {
     // Custom Key Capture listener if binding keys
     this.isRebindingKey = null;
 
-    // Connect UI Action Buttons
-    document.getElementById('btn-start-run')?.addEventListener('click', () => this.startNewRun());
-    document.getElementById('btn-open-sanctuary')?.addEventListener('click', () => this.openSanctuary());
+    // Connect UI Action Buttons - Header and Overlays
+    const startRunFn = (e) => {
+      if (e) e.stopPropagation();
+      this.startNewRun();
+    };
+    const openSanctuaryFn = (e) => {
+      if (e) e.stopPropagation();
+      this.openSanctuary();
+    };
+
+    document.getElementById('btn-start-run')?.addEventListener('click', startRunFn);
+    document.getElementById('btn-overlay-start')?.addEventListener('click', startRunFn);
+    document.getElementById('btn-open-sanctuary')?.addEventListener('click', openSanctuaryFn);
+    document.getElementById('btn-overlay-sanctuary')?.addEventListener('click', openSanctuaryFn);
+
     document.getElementById('btn-open-settings')?.addEventListener('click', () => a11y.openModal('dialog-settings'));
     document.getElementById('btn-open-spellbook')?.addEventListener('click', () => a11y.openModal('dialog-spellbook'));
+    
+    // Pause overlay buttons
+    document.getElementById('btn-pause-resume')?.addEventListener('click', () => this.togglePause());
+    document.getElementById('btn-pause-sanctuary')?.addEventListener('click', () => {
+      this.togglePause();
+      this.openSanctuary();
+    });
+    document.getElementById('btn-pause-settings')?.addEventListener('click', () => a11y.openModal('dialog-settings'));
+
+    // Game Over buttons
     document.getElementById('btn-quick-restart')?.addEventListener('click', () => {
       a11y.closeModal('dialog-gameover');
       this.startNewRun();
@@ -119,6 +184,8 @@ export class GameEngine {
       a11y.closeModal('dialog-gameover');
       this.openSanctuary();
     });
+
+    // Close buttons
     document.getElementById('btn-close-sanctuary')?.addEventListener('click', () => a11y.closeModal('dialog-sanctuary'));
     document.getElementById('btn-close-settings')?.addEventListener('click', () => a11y.closeModal('dialog-settings'));
     document.getElementById('btn-close-spellbook')?.addEventListener('click', () => a11y.closeModal('dialog-spellbook'));
@@ -272,7 +339,13 @@ export class GameEngine {
     const isSpellKey = CONFIG.DEFAULT_CONTROLS.spell.includes(e.code) || e.code === customKeys.spell;
     const isPauseKey = CONFIG.DEFAULT_CONTROLS.pause.includes(e.code) || e.code === customKeys.pause;
 
-    if (this.state === GAME_STATE.PLAYING) {
+    if (this.state === GAME_STATE.TITLE) {
+      if (isFlapKey || e.code === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        this.startNewRun();
+        return;
+      }
+    } else if (this.state === GAME_STATE.PLAYING) {
       if (isFlapKey) {
         e.preventDefault();
         if (storage.getSetting('holdToRise')) {
@@ -291,6 +364,12 @@ export class GameEngine {
       if (isPauseKey) {
         e.preventDefault();
         this.togglePause();
+      }
+    } else if (this.state === GAME_STATE.GAMEOVER) {
+      if (isFlapKey || e.code === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        a11y.closeModal('dialog-gameover');
+        this.startNewRun();
       }
     }
   }
@@ -740,7 +819,22 @@ export class GameEngine {
   }
 }
 
-// Instantiate engine when DOM is ready
-window.addEventListener('DOMContentLoaded', () => {
-  window.gameEngine = new GameEngine();
-});
+// Robust initialization: runs immediately if DOM is ready, or on event
+function initGameEngine() {
+  if (typeof window !== 'undefined' && !window.gameEngine) {
+    try {
+      window.gameEngine = new GameEngine();
+    } catch (err) {
+      console.error('Failed to initialize Knightmare GameEngine:', err);
+    }
+  }
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGameEngine);
+    window.addEventListener('load', initGameEngine);
+  } else {
+    initGameEngine();
+  }
+}
