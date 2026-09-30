@@ -1,0 +1,999 @@
+/* ==========================================================================
+   KNIGHTMARE: DUNGEONEER'S FLIGHT
+   Design System, High Contrast, Animations, and Layout
+   ========================================================================== */
+
+:root {
+  /* Core Dark Fantasy Palette */
+  --bg-dungeon-dark: #070a12;
+  --bg-dungeon-card: #111827;
+  --bg-stone-surface: #1e293b;
+  --bg-stone-border: #334155;
+  --bg-stone-hover: #283548;
+
+  --text-parchment: #f1f5f9;
+  --text-parchment-muted: #94a3b8;
+  --text-gold: #f59e0b;
+  --text-gold-bright: #fbbf24;
+
+  --accent-gold: #d97706;
+  --accent-gold-glow: rgba(245, 158, 11, 0.35);
+  --accent-ruby: #ef4444;
+  --accent-teal: #10b981;
+  --accent-blue: #3b82f6;
+
+  /* Typography */
+  --font-title: 'Cinzel', serif;
+  --font-gothic: 'MedievalSharp', cursive, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Sizing & Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-dungeon: 0 8px 30px rgba(0, 0, 0, 0.7);
+  --focus-ring: 3px solid #fbbf24;
+}
+
+/* Accessible High Contrast Override */
+body.high-contrast {
+  --bg-dungeon-dark: #000000;
+  --bg-dungeon-card: #0a0a0a;
+  --bg-stone-surface: #121212;
+  --bg-stone-border: #ffffff;
+  --bg-stone-hover: #262626;
+
+  --text-parchment: #ffffff;
+  --text-parchment-muted: #e5e5e5;
+  --text-gold: #ffeb3b;
+  --text-gold-bright: #ffff00;
+
+  --accent-gold: #ffff00;
+  --accent-gold-glow: none;
+  --accent-ruby: #ff3333;
+  --accent-teal: #00ffaa;
+  --accent-blue: #3399ff;
+  --focus-ring: 4px solid #ffff00;
+}
+
+/* Dyslexic / High Legibility Font Mode */
+body.dyslexic-font {
+  --font-title: var(--font-body);
+  --font-gothic: var(--font-body);
+  letter-spacing: 0.05em;
+  word-spacing: 0.1em;
+  line-height: 1.6;
+}
+
+/* Reduced Motion Mode */
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Accessibility Focus States */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* Screen Reader Only Utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip Navigation Link */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 20px;
+  background: var(--accent-gold);
+  color: #000;
+  padding: 12px 18px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  z-index: 9999;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 15px;
+}
+
+/* Base Document Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dungeon-dark);
+  color: var(--text-parchment);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 50% 10%, rgba(30, 41, 59, 0.45), transparent 70%),
+    radial-gradient(circle at 10% 90%, rgba(217, 119, 6, 0.08), transparent 50%);
+}
+
+.app-layout {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ==========================================================================
+   HEADER & TREGUARD BANNER
+   ========================================================================== */
+.game-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-dungeon-card);
+  border: 1px solid var(--bg-stone-border);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.header-branding {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dungeon-crest {
+  font-size: 1.8rem;
+}
+
+.game-title {
+  font-family: var(--font-title);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--text-gold-bright);
+  text-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.title-sub {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  color: var(--text-parchment-muted);
+  font-weight: 600;
+}
+
+/* Treguard Advice Banner */
+.treguard-scroll {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border-left: 3px solid var(--accent-gold);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+}
+
+.treguard-avatar {
+  font-size: 1.6rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.treguard-speech {
+  display: flex;
+  flex-direction: column;
+}
+
+.treguard-name {
+  font-family: var(--font-title);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-gold);
+}
+
+.treguard-quote {
+  font-size: 0.85rem;
+  color: var(--text-parchment);
+  font-style: italic;
+  max-width: 480px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   BUTTONS & CONTROLS
+   ========================================================================== */
+.btn-royal {
+  background: linear-gradient(180deg, #b45309, #78350f);
+  color: #fff;
+  border: 1px solid #f59e0b;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px;
+}
+
+.btn-royal:hover {
+  background: linear-gradient(180deg, #d97706, #92400e);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.btn-royal:active {
+  transform: translateY(1px);
+}
+
+.btn-royal.btn-large {
+  font-size: 1.1rem;
+  padding: 12px 24px;
+}
+
+.btn-pulse {
+  animation: pulse-border 2.5s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+
+.btn-icon-square {
+  background: var(--bg-stone-surface);
+  border: 1px solid var(--bg-stone-border);
+  color: var(--text-parchment);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-icon-square:hover {
+  background: var(--bg-stone-hover);
+  border-color: var(--accent-gold);
+}
+
+/* ==========================================================================
+   HUD SECTION (LIFE FORCE CLOCK, CHAMBER, SPELLS)
+   ========================================================================== */
+.game-hud {
+  display: grid;
+  grid-template-columns: 1.4fr 1.1fr 0.9fr 1.1fr;
+  gap: 12px;
+}
+
+.hud-card {
+  background: var(--bg-dungeon-card);
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.metric-title {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--text-parchment-muted);
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-title);
+  color: #fff;
+}
+
+.gold-text {
+  color: var(--text-gold-bright) !important;
+}
+
+/* Life Force Clock Card */
+.lifeforce-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.lifeforce-face-wrapper {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #090d16;
+  border-radius: 50%;
+  border: 2px solid var(--bg-stone-border);
+  overflow: hidden;
+}
+
+.lifeforce-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+}
+
+.metric-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.lifeforce-hint {
+  font-size: 0.68rem;
+  color: var(--text-parchment-muted);
+}
+
+/* Chamber Card */
+.chamber-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-title);
+  color: #38bdf8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.paces-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.paces-best {
+  color: var(--text-gold);
+}
+
+/* Treasury Card */
+.treasury-card {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shields-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.shields-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+/* Active Spell Slot */
+.spell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spell-cd-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--accent-gold);
+  color: var(--text-gold);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.hud-card.cooldown .spell-cd-badge {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--accent-ruby);
+  color: var(--accent-ruby);
+}
+
+.btn-spell-cast {
+  width: 100%;
+  margin-top: 4px;
+  background: #3b0764;
+  border: 1px solid #a855f7;
+  color: #f3e8ff;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 38px;
+}
+
+.btn-spell-cast:hover {
+  background: #581c87;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
+.spell-key-hint {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  color: var(--text-gold);
+}
+
+/* ==========================================================================
+   GAME CANVAS & VIEWPORT
+   ========================================================================== */
+.canvas-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: #000;
+  border: 2px solid var(--bg-stone-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-dungeon);
+}
+
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: pointer;
+}
+
+/* Overlay Cards (Start Screen, Pause Screen) */
+.overlay-card {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 10, 18, 0.88);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+  transition: opacity 0.25s ease;
+}
+
+.overlay-card.hidden {
+  display: none !important;
+}
+
+.overlay-content {
+  background: var(--bg-dungeon-card);
+  border: 2px solid var(--accent-gold);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  max-width: 680px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.overlay-title {
+  font-family: var(--font-title);
+  color: var(--text-gold-bright);
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+}
+
+.overlay-subtitle {
+  color: var(--text-parchment-muted);
+  font-size: 0.95rem;
+  margin: 6px 0 20px 0;
+}
+
+.start-rules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.rule-box {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid var(--bg-stone-border);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.rule-box h3 {
+  font-family: var(--font-title);
+  font-size: 0.88rem;
+  color: var(--text-gold);
+  margin-bottom: 4px;
+}
+
+.rule-box p {
+  font-size: 0.78rem;
+  color: var(--text-parchment-muted);
+  line-height: 1.4;
+}
+
+.start-actions, .pause-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+/* ==========================================================================
+   FOOTER (AUDIO CAPTIONS HUD & QUICK CONTROLS)
+   ========================================================================== */
+.game-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-dungeon-card);
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+}
+
+.captions-hud-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.captions-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-gold);
+}
+
+.captions-list {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.caption-item {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: fadeIn 0.2s ease;
+}
+
+.caption-item.priority-urgent {
+  border-color: var(--accent-ruby);
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff9999;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.quick-controls-legend {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.control-badge {
+  font-size: 0.75rem;
+  color: var(--text-parchment-muted);
+}
+
+kbd {
+  background: #334155;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  border: 1px solid #475569;
+}
+
+/* ==========================================================================
+   NATIVE MODALS (<dialog>)
+   ========================================================================== */
+.game-dialog {
+  margin: auto;
+  border: 2px solid var(--accent-gold);
+  border-radius: var(--radius-lg);
+  background: var(--bg-dungeon-card);
+  color: var(--text-parchment);
+  padding: 0;
+  max-width: 820px;
+  width: 90vw;
+  max-height: 85vh;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.85);
+}
+
+.game-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  overflow: hidden;
+}
+
+.dialog-header {
+  padding: 20px 24px;
+  background: #0f172a;
+  border-bottom: 1px solid var(--bg-stone-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-title {
+  font-family: var(--font-title);
+  color: var(--text-gold-bright);
+  font-size: 1.4rem;
+  letter-spacing: 0.05em;
+}
+
+.dialog-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-parchment-muted);
+  margin-top: 4px;
+}
+
+.dialog-footer {
+  padding: 16px 24px;
+  background: #0f172a;
+  border-top: 1px solid var(--bg-stone-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Sanctuary Upgrades Grid */
+.sanctuary-content {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.upgrades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.upgrade-card {
+  background: var(--bg-stone-surface);
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.upgrade-card:hover, .upgrade-card:focus-within {
+  border-color: var(--accent-gold);
+}
+
+.upgrade-card.maxed {
+  border-color: #10b981;
+}
+
+.upgrade-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upgrade-icon {
+  font-size: 1.35rem;
+}
+
+.upgrade-title {
+  font-family: var(--font-title);
+  font-size: 0.95rem;
+  color: var(--text-gold);
+}
+
+.upgrade-desc {
+  font-size: 0.8rem;
+  color: var(--text-parchment-muted);
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.upgrade-tier-bar {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.tier-pip {
+  height: 6px;
+  flex-grow: 1;
+  background: #334155;
+  border-radius: 3px;
+}
+
+.tier-pip.active {
+  background: var(--accent-gold);
+}
+
+.upgrade-card.maxed .tier-pip.active {
+  background: #10b981;
+}
+
+.upgrade-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.upgrade-tier-label {
+  font-size: 0.75rem;
+  color: var(--text-parchment-muted);
+}
+
+.btn-sanctuary-buy {
+  background: #d97706;
+  border: 1px solid #f59e0b;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.btn-sanctuary-buy.disabled, .btn-sanctuary-buy[disabled] {
+  background: #334155;
+  border-color: #475569;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Game Over Dialog */
+.gameover-treguard-quote {
+  font-style: italic;
+  color: var(--text-gold);
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
+.gameover-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding: 24px;
+}
+
+.stat-card {
+  background: var(--bg-stone-surface);
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--text-parchment-muted);
+  text-transform: uppercase;
+}
+
+.stat-val {
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* Settings Dialog */
+.settings-sections {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-group {
+  border: 1px solid var(--bg-stone-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-title {
+  font-family: var(--font-title);
+  color: var(--text-gold);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.setting-label strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #fff;
+}
+
+.setting-label small {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-parchment-muted);
+}
+
+.toggle-checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+}
+
+.select-input {
+  background: var(--bg-stone-surface);
+  border: 1px solid var(--bg-stone-border);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+}
+
+.data-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-danger {
+  background: #991b1b !important;
+  border-color: #ef4444 !important;
+}
+
+/* Spellbook Dialog */
+.spellbook-content {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.codex-section h3 {
+  font-family: var(--font-title);
+  color: var(--text-gold);
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+
+.codex-section p, .codex-section li {
+  font-size: 0.88rem;
+  color: var(--text-parchment);
+  line-height: 1.5;
+}
+
+.codex-section ul {
+  padding-left: 20px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYOUT
+   ========================================================================== */
+@media (max-width: 800px) {
+  .game-header {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .treguard-quote {
+    max-width: 100%;
+  }
+  .game-hud {
+    grid-template-columns: 1fr 1fr;
+  }
+  .start-rules-grid {
+    grid-template-columns: 1fr;
+  }
+  .gameover-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

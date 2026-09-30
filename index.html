@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knightmare: Dungeoneer's Flight — Roguelite Flappy Adventure</title>
+  <meta name="description" content="An accessible roguelite flappy bird adventure inspired by the legendary ITV fantasy kids show Knightmare. Pilot the dungeoneer, survive the Corridor of Blades, and sustain your Life Force!">
+  
+  <!-- Google Fonts: MedievalSharp, Cinzel, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=MedievalSharp&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <!-- Accessibility Skip Link -->
+  <a href="#game-canvas" class="skip-link">Skip to Dunshelm Dungeon Canvas</a>
+
+  <!-- ARIA Live Regions for Screen Readers -->
+  <div id="a11y-live-polite" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="a11y-live-assertive" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+  <div id="app-container" class="app-layout">
+    
+    <!-- TOP TREGUARD BANNER & HEADER -->
+    <header class="game-header" role="banner">
+      <div class="header-branding">
+        <span class="dungeon-crest" aria-hidden="true">⚔️</span>
+        <h1 class="game-title">KNIGHTMARE <span class="title-sub">Dungeoneer's Flight</span></h1>
+      </div>
+
+      <!-- Treguard Advice Scroll -->
+      <aside class="treguard-scroll" aria-label="Treguard of Dunshelm's Counsel">
+        <span class="treguard-avatar" aria-hidden="true">🧙</span>
+        <div class="treguard-speech">
+          <span class="treguard-name">Treguard:</span>
+          <p id="treguard-banner-text" class="treguard-quote">"Enter, Stranger! Tread the path of peril, fly through the Corridor of Blades, and let not thy Life Force perish!"</p>
+        </div>
+      </aside>
+
+      <!-- Navigation & Action Buttons -->
+      <nav class="header-nav" aria-label="Main Controls">
+        <button id="btn-start-run" class="btn-royal btn-pulse" aria-label="Begin New Run into the Dungeon">
+          <span class="btn-icon" aria-hidden="true">⚡</span> Enter Dungeon
+        </button>
+        <button id="btn-open-sanctuary" class="btn-royal" aria-label="Open Treguard's Sanctuary Upgrade Shop">
+          <span class="btn-icon" aria-hidden="true">🏛️</span> Sanctuary
+        </button>
+        <button id="btn-open-spellbook" class="btn-icon-square" aria-label="Open Spellbook and Dungeon Lore" title="Spellbook & Lore">
+          <span aria-hidden="true">📜</span>
+        </button>
+        <button id="btn-open-settings" class="btn-icon-square" aria-label="Open Accessibility & Controls Settings" title="Accessibility & Settings">
+          <span aria-hidden="true">⚙️</span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- MAIN GAMEPLAY STAGE -->
+    <main class="game-main" id="main-content" role="main">
+      
+      <!-- TOP HUD OVERLAY BAR -->
+      <section class="game-hud" aria-label="Dungeon HUD">
+        
+        <!-- Knightmare Life Force Clock Component -->
+        <div class="hud-card lifeforce-card" aria-label="Life Force Clock Status">
+          <div class="lifeforce-face-wrapper" title="Knightmare Life Force Indicator">
+            <canvas id="lifeforce-face-canvas" width="84" height="84" aria-hidden="true"></canvas>
+          </div>
+          <div class="lifeforce-metrics">
+            <span class="metric-title">LIFE FORCE</span>
+            <div class="metric-main">
+              <span id="lifeforce-percentage" class="metric-value">100%</span>
+              <span id="lifeforce-stage-pill" class="stage-pill">Green Visor (Plentiful)</span>
+            </div>
+            <div class="lifeforce-hint">Feed on rations to stay alive!</div>
+          </div>
+        </div>
+
+        <!-- Dungeon Progress & Location -->
+        <div class="hud-card chamber-card">
+          <span class="metric-title">DUNGEON CHAMBER</span>
+          <span id="hud-chamber-name" class="chamber-name">The Catacombs (Floor 1)</span>
+          <div class="paces-row">
+            <span>Distance: <strong id="hud-paces">0 paces</strong></span>
+            <span class="paces-best">Best: <strong id="hud-best-paces">0 paces</strong></span>
+          </div>
+        </div>
+
+        <!-- Treasury & Armor Shields -->
+        <div class="hud-card treasury-card">
+          <div class="treasury-item">
+            <span class="metric-title">DUNSHELM GOLD</span>
+            <span id="hud-gold" class="metric-value gold-text">0 🪙</span>
+          </div>
+          <div class="shields-row hidden" id="hud-shields-container">
+            <span class="metric-title">ARMOR</span>
+            <span id="hud-shields" class="shields-value">🛡️ × 1</span>
+          </div>
+        </div>
+
+        <!-- Active Spell Slot -->
+        <div class="hud-card spell-card" id="hud-spell-slot">
+          <div class="spell-header">
+            <span class="metric-title">ARCANE SPELL</span>
+            <span id="hud-spell-cooldown" class="spell-cd-badge">READY</span>
+          </div>
+          <div class="spell-body">
+            <button id="btn-cast-spell" class="btn-spell-cast" aria-label="Cast Spell DISMISS (Hotkeys: E, 1, or click)">
+              <span class="spell-icon" aria-hidden="true">⚡</span>
+              <span class="spell-incantation">D-I-S-M-I-S-S</span>
+              <span class="spell-key-hint">[E]</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- CANVAS GAME CONTAINER -->
+      <div class="canvas-viewport" id="canvas-container">
+        <canvas id="game-canvas" width="960" height="640" tabindex="0" role="img" aria-label="Castle Dunshelm flight arena. Press Space or Click to ascend with the Helmet of Justice, avoid spiked portcullises and pendulum blades.">
+          Your browser does not support HTML5 Canvas.
+        </canvas>
+
+        <!-- START SCREEN OVERLAY CARD -->
+        <div id="start-screen-card" class="overlay-card">
+          <div class="overlay-content">
+            <h2 class="overlay-title">ENTER THE DUNGEONS OF DUNSHELM</h2>
+            <p class="overlay-subtitle">A "Gongueslike" Flappy Adventure Inspired by the ITV Classic <em>Knightmare</em></p>
+            
+            <div class="start-rules-grid">
+              <div class="rule-box">
+                <span class="rule-icon" aria-hidden="true">🪶</span>
+                <h3>Fly with Justice</h3>
+                <p>Don the horned Helmet of Justice. Flap using <strong>Space</strong>, <strong>Up Arrow</strong>, or <strong>Click / Tap</strong>.</p>
+              </div>
+              <div class="rule-box">
+                <span class="rule-icon" aria-hidden="true">⏳</span>
+                <h3>Watch Thy Life Force</h3>
+                <p>Life force drains constantly! Eat <strong>Apples</strong>, <strong>Knight's Pies</strong>, and <strong>Roast Fowl</strong> to stop the Skull from taking thee.</p>
+              </div>
+              <div class="rule-box">
+                <span class="rule-icon" aria-hidden="true">⚡</span>
+                <h3>Cast Ancient Spells</h3>
+                <p>Spell <strong>D-I-S-M-I-S-S</strong> with <strong>[E]</strong> to pulverize upcoming guillotine blades and spiked gates.</p>
+              </div>
+              <div class="rule-box">
+                <span class="rule-icon" aria-hidden="true">🏛️</span>
+                <h3>Roguelite Boons</h3>
+                <p>Collect Dunshelm Gold to unlock permanent stat enhancers in <strong>Treguard's Sanctuary</strong>!</p>
+              </div>
+            </div>
+
+            <div class="start-actions">
+              <button class="btn-royal btn-large" onclick="window.gameEngine.startNewRun()">
+                <span class="btn-icon" aria-hidden="true">🛡️</span> Enter the Dungeon
+              </button>
+              <button class="btn-royal" onclick="window.gameEngine.openSanctuary()">
+                <span class="btn-icon" aria-hidden="true">🏛️</span> Visit Sanctuary
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAUSE OVERLAY -->
+        <div id="pause-overlay" class="overlay-card hidden" role="dialog" aria-label="Game Paused">
+          <div class="overlay-content">
+            <h2 class="overlay-title">JOURNEY PAUSED</h2>
+            <p class="overlay-subtitle">"Rest thy weary wings awhile, Stranger." — Treguard</p>
+            <div class="pause-actions">
+              <button class="btn-royal btn-large" onclick="window.gameEngine.togglePause()">Resume Flight [Esc]</button>
+              <button class="btn-royal" onclick="window.gameEngine.openSanctuary()">Treguard's Sanctuary</button>
+              <button class="btn-royal" onclick="a11y.openModal('dialog-settings')">Settings & Accessibility</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM ACCESSIBILITY & AUDIO CAPTIONS HUD -->
+      <footer class="game-footer" role="contentinfo">
+        
+        <!-- Live Closed Captions Bar -->
+        <section class="captions-hud-wrapper" aria-label="Visual Sound Captions">
+          <span class="captions-label">SOUND CUES:</span>
+          <ul id="captions-hud-list" class="captions-list" aria-live="polite">
+            <li class="caption-item priority-low"><span class="caption-icon" aria-hidden="true">🔊</span> [Dungeon ambient drone murmurs]</li>
+          </ul>
+        </section>
+
+        <!-- Quick Controls Legend -->
+        <div class="quick-controls-legend" aria-label="Quick Controls Reference">
+          <span class="control-badge"><kbd>Space</kbd> / <kbd>Tap</kbd> Flap</span>
+          <span class="control-badge"><kbd>E</kbd> / <kbd>1</kbd> Cast Spell</span>
+          <span class="control-badge"><kbd>Esc</kbd> / <kbd>P</kbd> Pause</span>
+          <span class="control-badge"><kbd>Tab</kbd> Navigate Menus</span>
+        </div>
+
+      </footer>
+
+    </main>
+
+  </div>
+
+  <!-- NATIVE MODAL: TREGUARD'S SANCTUARY (ROGUELITE UPGRADE SHOP) -->
+  <dialog id="dialog-sanctuary" class="game-dialog modal-sanctuary" aria-labelledby="sanctuary-title">
+    <div class="dialog-inner">
+      <header class="dialog-header">
+        <div>
+          <h2 id="sanctuary-title" class="dialog-title">TREGUARD'S SANCTUARY</h2>
+          <p class="dialog-subtitle">"Thy gathered gold can turn future peril into triumph. What eternal boons shall we forge?"</p>
+        </div>
+        <div class="sanctuary-wallet" aria-label="Current Gold Wallet">
+          <span>Available Treasury:</span>
+          <strong id="sanctuary-gold-counter" class="gold-text">0 🪙</strong>
+        </div>
+      </header>
+
+      <div class="sanctuary-content">
+        <div id="sanctuary-upgrades-grid" class="upgrades-grid" role="region" aria-label="Permanent Upgrades">
+          <!-- Populated dynamically by game.js -->
+        </div>
+      </div>
+
+      <footer class="dialog-footer">
+        <button id="btn-close-sanctuary" class="btn-royal">Leave Sanctuary</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- NATIVE MODAL: GAME OVER / POST-RUN SUMMARY -->
+  <dialog id="dialog-gameover" class="game-dialog modal-gameover" aria-labelledby="gameover-title">
+    <div class="dialog-inner">
+      <header class="dialog-header">
+        <h2 id="gameover-title" class="dialog-title">Life Force Extinguished!</h2>
+        <p id="gameover-quote" class="gameover-treguard-quote">"Thy journey endeth here, Stranger... but Treguard awaits thy return!"</p>
+      </header>
+
+      <div class="gameover-stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Distance Flown</span>
+          <span id="postrun-paces" class="stat-val">0 paces</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Dunshelm High Score</span>
+          <span id="postrun-best" class="stat-val">0 paces</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Gold Plundered</span>
+          <span id="postrun-gold" class="stat-val gold-text">0 gold</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Treasury</span>
+          <span id="postrun-total-gold" class="stat-val gold-text">0 gold</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Rations Consumed</span>
+          <span id="postrun-food" class="stat-val">0 rations</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Spells Cast</span>
+          <span id="postrun-spells" class="stat-val">0 spells</span>
+        </div>
+      </div>
+
+      <footer class="dialog-footer">
+        <button id="btn-quick-restart" class="btn-royal btn-large">Try Again (Enter Dungeon)</button>
+        <button id="btn-postrun-sanctuary" class="btn-royal">Visit Treguard's Sanctuary</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- NATIVE MODAL: ACCESSIBILITY & SETTINGS -->
+  <dialog id="dialog-settings" class="game-dialog modal-settings" aria-labelledby="settings-title">
+    <div class="dialog-inner">
+      <header class="dialog-header">
+        <h2 id="settings-title" class="dialog-title">ACCESSIBILITY & SETTINGS</h2>
+        <p class="dialog-subtitle">Tailor the dungeon experience to your motor, visual, and sensory preferences.</p>
+      </header>
+
+      <div class="settings-sections">
+        
+        <!-- Motor & Gameplay Assist Section -->
+        <fieldset class="settings-group">
+          <legend class="group-title">Motor & Assist Modes</legend>
+          
+          <label class="setting-row">
+            <span class="setting-label">
+              <strong>Single-Switch Mode (Hold to Ascend)</strong>
+              <small>Hold down the flap key or screen to rise steadily instead of rapid tapping.</small>
+            </span>
+            <input type="checkbox" id="opt-hold-to-rise" class="toggle-checkbox">
+          </label>
+
+          <label class="setting-row">
+            <span class="setting-label">
+              <strong>Invincible Practice Mode</strong>
+              <small>Obstacles cause no damage, allowing safe rehearsal of flight patterns.</small>
+            </span>
+            <input type="checkbox" id="opt-practice-mode" class="toggle-checkbox">
+          </label>
+
+          <label class="setting-row">
+            <span class="setting-label">
+              <strong>Game Speed Pacing</strong>
+              <small>Slow down overall physics for enhanced reaction time.</small>
+            </span>
+            <select id="opt-game-speed" class="select-input">
+              <option value="0.5">50% (Slow Motion)</option>
+              <option value="0.75">75% (Relaxed)</option>
+              <option value="1.0" selected>100% (Standard Pace)</option>
+              <option value="1.25">125% (Harrowing Challenge)</option>
+            </select>
+          </label>
+        </fieldset>
+
+        <!-- Vision & Cognitive Section -->
+        <fieldset class="settings-group">
+          <legend class="group-title">Vision & Display</legend>
+
+          <label class="setting-row">
+            <span class="setting-label">
+              <strong>High Contrast Mode</strong>
+              <small>Enforces maximum visual separation, thick borders, and high-luminance HUD.</small>
+            </span>
+            <input type="checkbox" id="opt-high-contrast" class="toggle-checkbox">
+          </label>
+
+          <label class="setting-row">
+            <span class="setting-label">
+              <strong>Reduced Motion</strong>
+              <small>Eliminates screen shake, flashes, and rapid particle bursts.</small>
+            </span>
+            <input type="checkbox" id="opt-reduced-motion" class="toggle-checkbox">
+          </label>
+
+          <label class="setting-row">
+            <span class="setting-label">
+              <strong>Dyslexic / Legible Sans Font</strong>
+              <small>Replaces medieval gothic typography with high-readability sans-serif text.</small>
+            </span>
+            <input type="checkbox" id="opt-dyslexic-font" class="toggle-checkbox">
+          </label>
+        </fieldset>
+
+        <!-- Audio & Captions Section -->
+        <fieldset class="settings-group">
+          <legend class="group-title">Audio & Subtitles</legend>
+
+          <label class="setting-row">
+            <span class="setting-label">
+              <strong>Closed Captions HUD</strong>
+              <small>Displays live on-screen text descriptions for all synthesized sounds.</small>
+            </span>
+            <input type="checkbox" id="opt-captions-enabled" class="toggle-checkbox" checked>
+          </label>
+
+          <div class="setting-row slider-row">
+            <label for="opt-volume-master" class="setting-label">Master Volume</label>
+            <input type="range" id="opt-volume-master" min="0" max="1" step="0.05" value="0.8">
+          </div>
+
+          <div class="setting-row slider-row">
+            <label for="opt-volume-music" class="setting-label">Dungeon Synth BGM Volume</label>
+            <input type="range" id="opt-volume-music" min="0" max="1" step="0.05" value="0.4">
+          </div>
+
+          <div class="setting-row slider-row">
+            <label for="opt-volume-sfx" class="setting-label">Sound Effects Volume</label>
+            <input type="range" id="opt-volume-sfx" min="0" max="1" step="0.05" value="0.8">
+          </div>
+        </fieldset>
+
+        <!-- Data & Save Management Section -->
+        <fieldset class="settings-group">
+          <legend class="group-title">Data Backup & Reset</legend>
+          <div class="data-actions-row">
+            <button id="btn-export-save" class="btn-royal">Export Save (JSON)</button>
+            <button id="btn-import-save" class="btn-royal">Import Save</button>
+            <button id="btn-reset-save" class="btn-royal btn-danger">Reset All Progress</button>
+          </div>
+        </fieldset>
+
+      </div>
+
+      <footer class="dialog-footer">
+        <button id="btn-close-settings" class="btn-royal">Done</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- NATIVE MODAL: SPELLBOOK & KNIGHTMARE CODEX -->
+  <dialog id="dialog-spellbook" class="game-dialog modal-spellbook" aria-labelledby="spellbook-title">
+    <div class="dialog-inner">
+      <header class="dialog-header">
+        <h2 id="spellbook-title" class="dialog-title">CODEX OF DUNSHELM</h2>
+        <p class="dialog-subtitle">Knowledge recorded by the scholars of Treguard.</p>
+      </header>
+
+      <div class="spellbook-content">
+        <section class="codex-section">
+          <h3>The Helmet of Justice</h3>
+          <p>A magical iron helm forged with curved horns. It completely blinds the physical sight of the dungeoneer, forcing them to rely on spiritual guidance, team counsel, and arcane instinct to fly through treacherous corridors.</p>
+        </section>
+
+        <section class="codex-section">
+          <h3>The Life Force Clock</h3>
+          <p>Every living soul in Dunshelm is tethered to a magical Life Force Clock. It manifests as a face in an armored helmet that degrades over time:</p>
+          <ul>
+            <li><strong style="color: #2ec4b6">Green Visor (100%–65%):</strong> Pristine vitality and high resilience.</li>
+            <li><strong style="color: #ffb703">Amber Guard (64%–33%):</strong> Warning stage! Helmet visor strips away, caution bells chime.</li>
+            <li><strong style="color: #e63946">Red Menace (32%–1%):</strong> Critical emergency! Flesh peels, exposed jaw, pounding heartbeat.</li>
+            <li><strong style="color: #f8f9fa">Skull of Doom (0%):</strong> Death knell. Only bone remains unless resurrected!</li>
+          </ul>
+        </section>
+
+        <section class="codex-section">
+          <h3>Arcane Spells</h3>
+          <ul>
+            <li><strong>D-I-S-M-I-S-S [E]:</strong> Unleashes a burst of explosive energy that shatters the nearest portcullis or pendulum blade ahead into rubble.</li>
+            <li><strong>E-Y-E-S-H-I-E-L-D:</strong> Dilates time itself, slowing the world by 60% for 4 seconds for surgical flight maneuvers.</li>
+            <li><strong>A-N-V-I-L:</strong> Summons an impenetrable golden armor shield, ignoring all impacts for 3.5 seconds.</li>
+            <li><strong>L-E-V-I-T-A-T-E:</strong> Suspends the dungeoneer in balanced hover, bypassing gravity entirely.</li>
+          </ul>
+        </section>
+      </div>
+
+      <footer class="dialog-footer">
+        <button id="btn-close-spellbook" class="btn-royal">Close Codex</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- ES MODULE ENTRY -->
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>

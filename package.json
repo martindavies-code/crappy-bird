@@ -1,0 +1,15 @@
+{
+  "name": "knightmare-dungeoneers-flight",
+  "version": "1.0.0",
+  "description": "Knightmare-inspired Roguelite Flappy Flight game with deep meta-progression and comprehensive accessibility",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/game.test.js"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
