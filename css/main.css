@@ -694,6 +694,8 @@ body {
   padding: 24px;
   z-index: 50;
   transition: opacity 0.25s ease;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .hidden,
@@ -709,6 +711,7 @@ body {
   border-radius: var(--radius-lg);
   padding: 24px 32px;
   max-width: 680px;
+  margin: auto;
   text-align: center;
   box-shadow: 6px 6px 0px var(--bauhaus-onyx), 0 20px 50px rgba(0, 0, 0, 0.7);
   animation: cardFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
