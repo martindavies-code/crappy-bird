@@ -270,6 +270,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   background: #141722;
   border: 2px solid var(--bauhaus-border-bold);
   border-left: 5px solid var(--bauhaus-red);
@@ -285,6 +286,7 @@ body {
 .treguard-speech {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .treguard-name {
@@ -700,6 +702,8 @@ body {
 }
 
 .overlay-content {
+  width: 100%;
+  min-width: 0;
   background: var(--bg-dungeon-card);
   border: 2px solid var(--bg-stone-border);
   border-radius: var(--radius-lg);
@@ -972,7 +976,9 @@ body {
 .quick-controls-legend {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .control-badge {
